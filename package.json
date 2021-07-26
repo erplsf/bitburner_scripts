@@ -1,0 +1,32 @@
+{
+  "name": "bitburner_scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "serve": "node server.js",
+    "lint": "eslint . --ext .ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erplsf/bitburner_scripts.git"
+  },
+  "author": "Andriy Mykhaylyk",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/erplsf/bitburner_scripts/issues"
+  },
+  "homepage": "https://github.com/erplsf/bitburner_scripts#readme",
+  "dependencies": {
+    "koa": "^2.13.1"
+  },
+  "devDependencies": {
+    "@types/koa": "^2.13.4",
+    "@types/node": "^16.4.3",
+    "@typescript-eslint/eslint-plugin": "^4.28.4",
+    "@typescript-eslint/parser": "^4.28.4",
+    "eslint": "^7.31.0",
+    "typescript": "^4.3.5"
+  }
+}
