@@ -1,17 +1,15 @@
 {
   "include": [
-    "*.ts",
+    "src/**/*",
   ],
   "compilerOptions": {
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "module": "ES2015",
     "target": "ES2017",
-    "rootDir": "",
-    "outDir": "",
+    "rootDir": "src/",
+    "outDir": "dist/",
     "sourceMap": false,
-    "module": "commonjs",
     "strict": true,
-    "typeRoots": ["node_modules/@types"]
   }
 }
