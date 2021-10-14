@@ -1,5 +1,4 @@
 import * as Koa from 'koa';
-const app = new Koa();
 import * as fs from 'fs/promises';
 
 async function ls() {
@@ -10,6 +9,8 @@ async function ls() {
         console.error(err);
     }
 }
+
+const app = new Koa();
 
 app.use(async ctx => {
     await ls();
