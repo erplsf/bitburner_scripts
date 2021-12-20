@@ -1,20 +1,30 @@
 import * as Koa from 'koa';
 import * as fs from 'fs/promises';
+import * as crypto from 'crypto';
 
-async function ls() {
+const BASE_PATH = './dist/bb';
+
+async function ls(): Promise<Map<string, string>> {
     try {
-        const dir = await fs.opendir('./');
-        for await (const dirent of dir) console.log(dirent.name);
+        const files = new Map();
+        const dir = await fs.opendir(BASE_PATH);
+        for await (const dirent of dir) {
+            if (dirent.isFile()) {
+                const contents = await fs.readFile(BASE_PATH + '/' + dirent.name);
+                files.set(dirent.name, crypto.createHash('sha256').update(contents).digest('hex'));
+            }
+        }
+        return files;
     } catch (err) {
         console.error(err);
+        return new Map();
     }
 }
 
 const app = new Koa();
 
 app.use(async ctx => {
-    await ls();
-    ctx.body = 'Hello World';
+    ctx.body = Object.fromEntries(await ls());
 });
 
 app.listen(3000);
