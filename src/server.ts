@@ -21,10 +21,19 @@ async function ls(): Promise<Map<string, string>> {
     }
 }
 
+async function read(name: string): Promise<Buffer> {
+    return fs.readFile(BASE_PATH + '/' + name);
+}
+
 const app = new Koa();
 
 app.use(async ctx => {
-    ctx.body = Object.fromEntries(await ls());
+    if (ctx.path == '/') {
+        ctx.body = Object.fromEntries(await ls());
+    } else {
+        const name = ctx.path.split('/')[1];
+        ctx.body = await read(name);
+    }
 });
 
 app.listen(3000);
