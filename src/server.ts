@@ -1,4 +1,4 @@
-import * as Koa from 'koa';
+import Koa from 'koa';
 import * as fs from 'fs/promises';
 import * as crypto from 'crypto';
 
@@ -37,3 +37,5 @@ app.use(async ctx => {
 });
 
 app.listen(3000);
+
+// types: https://github.com/danielyxie/bitburner/blob/dev/src/ScriptEditor/NetscriptDefinitions.d.ts
