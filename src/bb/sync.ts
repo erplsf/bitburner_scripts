@@ -11,10 +11,10 @@ async function requestFile(server: string, filename: string): Promise<string> {
 }
 
 async function digestMessage(message: string): Promise<string> {
-  const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);           // hash the message
-  const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+  const msgUint8 = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   return hashHex;
 }
 
@@ -29,12 +29,11 @@ export async function main(ns: NS): Promise<void> {
             const sourceHash = files[file];
             if (existingHash != sourceHash) {
                 const sourceContents = await requestFile(server, file);
-                await ns.write(file, [sourceContents]);
+                await ns.write(file, [sourceContents], 'w');
             }
         } else {
             const sourceContents = await requestFile(server, file);
-            await ns.write(file, [sourceContents]);
+            await ns.write(file, [sourceContents], 'w');
         }
-        /** lol */
     }
 }
