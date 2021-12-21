@@ -21,19 +21,23 @@ async function digestMessage(message: string): Promise<string> {
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
     const server = 'http://localhost:3000';
-    const files = await listFiles(server);
-    for(const file in files) {
-        if (ns.fileExists(file, 'home')) {
-            const existingContents = ns.read(file);
-            const existingHash = await digestMessage(existingContents);
-            const sourceHash = files[file];
-            if (existingHash != sourceHash) {
+    // ns.disableLog('ALL');
+    for(;;) {
+        const files = await listFiles(server); // TODO: crashes if server unavailable
+        for(const file in files) {
+            if (ns.fileExists(file, 'home')) {
+                const existingContents = ns.read(file);
+                const existingHash = await digestMessage(existingContents);
+                const sourceHash = files[file];
+                if (existingHash != sourceHash) {
+                    const sourceContents = await requestFile(server, file);
+                    await ns.write(file, [sourceContents], 'w');
+                }
+            } else {
                 const sourceContents = await requestFile(server, file);
                 await ns.write(file, [sourceContents], 'w');
             }
-        } else {
-            const sourceContents = await requestFile(server, file);
-            await ns.write(file, [sourceContents], 'w');
         }
+        await ns.sleep(1000);
     }
 }
