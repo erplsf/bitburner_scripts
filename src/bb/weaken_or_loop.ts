@@ -10,6 +10,10 @@ const silentCmds = [
     'hack',
 ]
 
+const secT = 0.1
+const monTL = 0.01
+const monTU = 0.05
+
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
     let hostname: string;
@@ -19,6 +23,7 @@ export async function main(ns: NS): Promise<void> {
         hostname = ns.getHostname();
 
     for(const cmd of silentCmds) ns.disableLog(cmd)
+    ns.clearLog()
 
     const maxMon = ns.getServerMaxMoney(hostname)
     const minSec = ns.getServerMinSecurityLevel(hostname)
@@ -28,14 +33,26 @@ export async function main(ns: NS): Promise<void> {
 
     if(maxMon > 0) {
         for(;;) {
-            const curSec = ns.getServerSecurityLevel(hostname)
-            while((1 - (minSec / curSec)) >= 0.1) await ns.weaken(hostname)
+            let curSec = ns.getServerSecurityLevel(hostname)
+            let secRat = 1 - (minSec / curSec)
 
             const curMon = ns.getServerMoneyAvailable(hostname)
-            if((curMon / maxMon) <= 0.01 && !growing) {  // lower threshold
+            const monRat = curMon / maxMon
+            ns.print(ns.sprintf("sec: %s / %s, mon: [%s <= %s <= %s]",
+                                secRat.toFixed(2), secT.toFixed(2),
+                                monTL.toFixed(2), monRat.toFixed(2), monTU.toFixed(2)
+                               ))
+
+            while(secRat >= secT) {
+                await ns.weaken(hostname)
+                curSec = ns.getServerSecurityLevel(hostname)
+                secRat = 1 - (minSec / curSec)
+            }
+
+            if(monRat <= monTL && !growing) {  // lower threshold
                 growing = true
                 hacking = false
-            } else if ((curMon / maxMon) >= 0.5 && !hacking) { // upper threshold
+            } else if (monRat >= monTU && !hacking) { // upper threshold
                 hacking = true
                 growing = false
             }
@@ -49,6 +66,7 @@ export async function main(ns: NS): Promise<void> {
         }
     } else {
         for(;;) {
+            ns.print("no money to steal, weaken forever")
             await ns.weaken(hostname)
         }
     }
