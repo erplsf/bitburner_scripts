@@ -1,5 +1,15 @@
 import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
 
+const silentCmds = [
+    'getServerMaxMoney',
+    'getServerMinSecurityLevel',
+    'getServerSecurityLevel',
+    'getServerMoneyAvailable',
+    'weaken',
+    'grow',
+    'hack',
+]
+
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
     let hostname: string;
@@ -7,6 +17,8 @@ export async function main(ns: NS): Promise<void> {
         hostname = ns.args[0] as string
     else
         hostname = ns.getHostname();
+
+    for(const cmd of silentCmds) ns.disableLog(cmd)
 
     const maxMon = ns.getServerMaxMoney(hostname)
     const minSec = ns.getServerMinSecurityLevel(hostname)
