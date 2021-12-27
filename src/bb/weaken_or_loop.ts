@@ -11,8 +11,8 @@ const silentCmds = [
 ]
 
 const secT = 0.1
-const monTL = 0.01
-const monTU = 0.05
+const monTL = 0.1 // servers will be hacked until money is below this percentage
+const monTU = 0.2 // then it will start a grow cycle until it reaches above this level again
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
