@@ -17,13 +17,13 @@ export async function main(ns: NS): Promise<void> {
     if(maxMon > 0) {
         for(;;) {
             const curSec = ns.getServerSecurityLevel(hostname)
-            while((1 - minSec / curSec) >= 0.1) await ns.weaken(hostname)
+            while((1 - (minSec / curSec)) >= 0.1) await ns.weaken(hostname)
 
             const curMon = ns.getServerMoneyAvailable(hostname)
-            if((curMon / maxMon) <= 0.05 && !growing) {  // lower threshold
+            if((curMon / maxMon) <= 0.01 && !growing) {  // lower threshold
                 growing = true
                 hacking = false
-            } else if ((curMon / maxMon) >= 0.1 && !hacking) { // upper threshold
+            } else if ((curMon / maxMon) >= 0.5 && !hacking) { // upper threshold
                 hacking = true
                 growing = false
             }
