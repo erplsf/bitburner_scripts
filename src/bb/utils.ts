@@ -1,9 +1,9 @@
 import { NS, Server } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
 
-export function buildServerMap(ns: NS, source: string, map: Map<string, Server[]>): void {
+export function buildServerMap(ns: NS, source: string, map: Map<string, string[]>): void {
     const hosts = ns.scan(source)
-    const servers = hosts.map(host => ns.getServer(host))
-    map.set(source, servers)
+    // const servers = hosts.map(host => ns.scan(host))
+    map.set(source, hosts)
     for(const host of hosts) {
         if(!map.get(host)) {
             buildServerMap(ns, host, map)
@@ -11,30 +11,56 @@ export function buildServerMap(ns: NS, source: string, map: Map<string, Server[]
     }
 }
 
-export function getUniqueServers(ns: NS): Server[] {
+export function getUniqueServers(ns: NS): string[] {
     const map = new Map()
     buildServerMap(ns, 'home', map)
     const servers = Array.from(map.values()).flat()
-    return servers.reduce((acc:Server[], serv:Server) => {
-        const exists = acc.find((ex: Server) => ex.hostname == serv.hostname)
+    return unique(servers)
+}
+
+export function unique(array: string[]): string[] {
+    return array.reduce((acc:string[], serv:string) => {
+        const exists = acc.find((ex: string) => ex == serv)
         if(!exists) acc.push(serv)
         return acc
     },[])
 }
 
-type ServerFilter = (server: Server) => boolean
+type ServerFilter = (hostname: string) => boolean
 
-export function filterServers(ns: NS, filterFunction: ServerFilter): Server[] {
+export function filterServers(ns: NS, filterFunction: ServerFilter): string[] {
     const servers = getUniqueServers(ns)
     return servers.filter(filterFunction)
 }
 
-/** returns percentage of difference between min and current, fractional, lower is better */
-export function serverSecurityP(server: Server): number {
-    return 1 - server.minDifficulty / server.hackDifficulty
+export function rootedHackableServers(ns: NS): string[] {
+    return filterServers(ns, serv => ns.hasRootAccess(serv) && ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(serv) && serv != 'home')
 }
 
-/** returns percentage of money available to max money, fractional, higher is better */
-export function serverMoneyP(server: Server): number {
-    return server.moneyAvailable / server.moneyMax
+export function runCmd(cmd: string): void {
+    const input = cheat.doc.getElementById("terminal-input") as HTMLInputElement
+    input.value = cmd
+    const handler = Object.keys(input)[1] as keyof HTMLInputElement
+    (input[handler] as unknown as DummyHandler).onChange({
+        target: input
+    });
+    (input[handler] as unknown as DummyHandler).onKeyDown({
+        keyCode: 13,
+        preventDefault: () => null
+    })
+}
+
+export interface DummyHandler {
+    onChange(e: any): void
+    onKeyDown(e: any): void
+}
+
+export class cheat {
+  static get doc(): Document {
+    return globalThis["document"] as Document;
+  }
+
+  static get win(): typeof window {
+    return globalThis as typeof window;
+  }
 }

@@ -21,8 +21,14 @@ async function digestMessage(message: string): Promise<string> {
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
     const server = 'http://localhost:3000'
-    // ns.disableLog('ALL')
-    for(;;) {
+
+    let runForever = false
+    if(ns.args.length != 0 && ns.args[0] == true) {
+        runForever = true
+    }
+
+    ns.disableLog('sleep')
+    do {
         await ns.sleep(1000)
         const files = await listFiles(server).catch(() => {return {}}) as Record<string, string>
         for(const file in files) {
@@ -39,5 +45,5 @@ export async function main(ns: NS): Promise<void> {
                 await ns.write(file, [sourceContents], 'w')
             }
         }
-    }
+    } while(runForever)
 }

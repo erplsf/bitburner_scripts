@@ -11,14 +11,13 @@ export async function main(ns: NS): Promise<void> {
     }
     do {
         const kits = getRootkits(ns)
-        servers = servers.filter(server => !server.hasAdminRights)
+        servers = servers.filter(server => !ns.hasRootAccess(server))
         for(const server of servers) {
-            if(kits.length >= server.numOpenPortsRequired) {
-                for(const kit of kits) kit(server.hostname)
-                ns.nuke(server.hostname)
-                const message = ns.sprintf("gained root access for: %s", server.hostname)
+            if(kits.length >= ns.getServerNumPortsRequired(server)) {
+                for(const kit of kits) kit(server)
+                ns.nuke(server)
+                const message = ns.sprintf("gained root access for: %s", server)
                 ns.toast(message, "success")
-                // server.hasAdminRights = true
             }
         }
         await ns.sleep(1000);
