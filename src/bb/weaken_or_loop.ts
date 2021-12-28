@@ -11,7 +11,7 @@ const silentCmds = [
 ]
 
 const secT = 0.1
-const monTL = 0.1 // servers will be hacked until money is below this percentage
+const monTL = 0.15 // servers will be hacked until money is below this percentage
 const monTU = 0.2 // then it will start a grow cycle until it reaches above this level again
 
 /** @param {NS} ns **/
@@ -44,6 +44,7 @@ export async function main(ns: NS): Promise<void> {
                                ))
 
             while(secRat >= secT) {
+                ns.print('w')
                 await ns.weaken(hostname)
                 curSec = ns.getServerSecurityLevel(hostname)
                 secRat = 1 - (minSec / curSec)
@@ -57,12 +58,18 @@ export async function main(ns: NS): Promise<void> {
                 growing = false
             }
 
-            if (growing) await ns.grow(hostname)
+            if (growing) {
+                ns.print('g')
+                await ns.grow(hostname)
+            }
 
             // const hackChance = ns.hackAnalyzeChance(hostname)
             // while(hackChance <= 0.75) await ns.weaken(hostname)
 
-            if (hacking) await ns.hack(hostname)
+            if (hacking) {
+                ns.print('h')
+                await ns.hack(hostname)
+            }
         }
     } else {
         for(;;) {

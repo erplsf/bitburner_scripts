@@ -33,6 +33,10 @@ export function filterServers(ns: NS, filterFunction: ServerFilter): string[] {
     return servers.filter(filterFunction)
 }
 
+export function rootedServers(ns: NS): string[] {
+    return filterServers(ns, serv => ns.hasRootAccess(serv) && serv != 'home')
+}
+
 export function rootedHackableServers(ns: NS): string[] {
     return filterServers(ns, serv => ns.hasRootAccess(serv) && ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(serv) && serv != 'home')
 }

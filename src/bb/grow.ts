@@ -1,7 +1,7 @@
 import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
 
 const silentCmds = [
-    'weaken',
+    'grow',
     'sleep',
 ]
 
@@ -14,5 +14,5 @@ export async function main(ns: NS): Promise<void> {
     ns.clearLog()
 
     await ns.sleep(wait)
-    await ns.weaken(host)
+    await ns.grow(host)
 }
