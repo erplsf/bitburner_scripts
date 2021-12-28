@@ -34,7 +34,7 @@ export function filterServers(ns: NS, filterFunction: ServerFilter): string[] {
 }
 
 export function rootedServers(ns: NS): string[] {
-    return filterServers(ns, serv => ns.hasRootAccess(serv) && serv != 'home')
+    return filterServers(ns, serv => ns.hasRootAccess(serv))
 }
 
 export function rootedHackableServers(ns: NS): string[] {
