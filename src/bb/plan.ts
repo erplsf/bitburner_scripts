@@ -3,7 +3,7 @@ import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
 const wpt = 0.05 // weaken security decrease per thread
 const gpt = 0.004 // weaken security decrease per thread
 const hpt = 0.002 // weaken security decrease per thread
-const pad = 100 // padding between finishes in ms
+const pad = 200 // padding between finishes in ms
 
 export const costs = {
     'weaken': 1.75,
@@ -15,12 +15,17 @@ const wrc = 1.75  // weaken cost per thread
 const grc = 1.75  // grow cost per thread
 const hrc = 1.70  // hack cost per thread
 
+const gpc = 0.1 // growth rate
+
 export function plan(ns: NS, host: string, perc: number): Plan {
+    const maxMoney = ns.getServerMaxMoney(host)
+    const curMoney = ns.getServerMoneyAvailable(host)
+    const growScale = 1-(curMoney/maxMoney) // scale growth as we reach maxMoney
     const hackPercentagePerThread = ns.hackAnalyze(host)   // returns DECIMALS
     const threadsToReachDesiredPerc = Math.floor(perc / hackPercentagePerThread) // threads needed to reach target perc
     const secIncreasePerHack = threadsToReachDesiredPerc * hpt // security increase to reach perc
     const threadsToOffsetHack = 1 + Math.ceil(secIncreasePerHack / wpt) // threads to offset hack security growth
-    const threadsToGrowMoneyBack = 1 + Math.ceil(ns.growthAnalyze(host, 1/(1-perc)+0.01)) // threads required to offset hack
+    const threadsToGrowMoneyBack = 1 + Math.ceil(ns.growthAnalyze(host, 1/(1-perc)+(gpc*growScale))) // threads required to offset hack
     const secIncreasePerGrow = threadsToGrowMoneyBack * gpt // security increase per growth
     const threadsToOffsetGrowth = 1 + Math.ceil(secIncreasePerGrow / wpt) // threads to offset growth
     const weakenTime = Math.ceil(ns.getWeakenTime(host))
