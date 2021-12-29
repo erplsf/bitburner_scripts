@@ -17,7 +17,7 @@ const typeMap = {
     'grow': 'grow.js',
 }
 
-const perc = 0.1
+const perc = 0.5
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
@@ -53,11 +53,14 @@ function schedule(ns: NS, servers: Server[], entry: Entry, host: string): boolea
         }
         const server = servers[0] as Server
         // ns.tprint(ns.sprintf("s: %s", server[0]))
-        const t = Math.floor(server[1] / costs[entry.type])
+        const t = Math.min(Math.floor(server[1] / costs[entry.type]), entry.threads)
         // ns.tprint(ns.sprintf("t: %s", t.toString()))
         const totalCost = t * costs[entry.type]
-        const pid = ns.exec(typeMap[entry.type], server[0], t, host, entry.offset)
-        if(pid == 0) ns.tprint(ns.sprintf("something went wrong on %s", server[0]))
+        const pid = ns.exec(typeMap[entry.type], server[0], t, host, entry.offset, Date.now())
+        if(pid == 0) {
+            // ns.tprint(ns.sprintf("something went wrong on %s", server[0]))
+            return false
+        }
         server[1] -= totalCost
         entry.threads -= t
         ramLeftToSchedule = entry.threads * costs[entry.type]
@@ -83,7 +86,10 @@ export function getRams(ns: NS): Server[] {
 }
 
 function freeRamOnServ(ns: NS, host: string): Server {
-    return [host, ns.getServerMaxRam(host)-ns.getServerUsedRam(host)]
+    if(host == 'home')
+        return [host, ns.getServerMaxRam(host)-ns.getServerUsedRam(host)-freeRamOnHome]
+    else
+        return [host, ns.getServerMaxRam(host)-ns.getServerUsedRam(host)]
 }
 
 type Server = [string, number]
