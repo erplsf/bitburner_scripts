@@ -17,29 +17,66 @@ const typeMap = {
     'grow': 'grow.js',
 }
 
-const perc = 0.5
+const desiredPerc = 0.5
+const desiredGrowth = 2 // growth rate of original money
+
+const minPerc = 0.01
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
     const ranks = rankAll(ns)
     const servs = getRams(ns)
-    const plans = ranks.map(s => plan(ns, s, perc))
-    await scheduleAll(ns, servs, plans)
+    // await scheduleAll(ns, servs, [ranks[0]])
+    await scheduleAll(ns, servs, ranks)
 }
 
-async function scheduleAll(ns: NS, servers: Server[], plans: Plan[]): Promise<void> {
+// TODO: implement better automatic lowering of targets
+async function scheduleAll(ns: NS, servers: Server[], ranks: string[]): Promise<void> {
     await prepareServers(ns, servers)
-    while (plans.length > 0 && servers.length > 0) {
-        const totalFreeRam = servers.map(p => p[1]).reduce((a, b) => a + b, 0)
-        const plan = plans.shift() as Plan
-        // ns.tprint(ns.sprintf("free / total: %s / %s", totalFreeRam.toString(), plan.totalRam.toString()))
-        if (totalFreeRam < plan.totalRam) break // TODO: break or continue? break will only schedule top ones, continue will fill all
-        ns.toast(ns.sprintf("scheduling for %s", plan.target), 'info')
-        while(plan.entries.length > 0) {
-            const entry = plan.entries.shift() as Entry
-            // ns.tprint(entry)
-            schedule(ns, servers, entry, plan.target)
+    let perc = desiredPerc
+    let gpc = desiredGrowth // growth rate of original money
+    while (ranks.length > 0 && servers.length > 0) {
+        const serv = ranks[0]
+        const fn = '.s.'+serv+'.txt'
+
+        // ns.tprint("checking serv: " + serv)
+        if(ns.fileExists(fn)) {
+            const timestamp = ns.read(fn) as number
+            // ns.tprint("currentTime: " + Date.now().toString())
+            // ns.tprint("timeRead: " + timestamp.toString())
+            if (timestamp >= Date.now()) {
+                // ns.tprint("timestamp lower skipping")
+                ranks.shift()
+                break // TODO: break will stop until target finishes, continue will fill other plans too
+            } else {
+                // ns.tprint("timestamp higher, removing and running")
+                ns.rm(fn)
+            }
         }
+
+        const totalFreeRam = servers.map(p => p[1]).reduce((a, b) => a + b, 0)
+        const cTime = 0 // current
+        let p = plan(ns, serv, perc, gpc)
+        // ns.tprint(ns.sprintf("free / total: %s / %s", totalFreeRam.toString(), plan.totalRam.toString()))
+        while (totalFreeRam < p.totalRam && perc >= minPerc) {
+            perc *= 0.5
+            gpc *= 0.5
+            p = plan(ns, serv, perc, gpc)
+            // break // TODO: break or continue? break will only schedule top ones, continue will fill all
+        }
+        if (perc < minPerc) break
+        if (totalFreeRam < p.totalRam) break
+        ns.toast(ns.sprintf("scheduling for %s", p.target), 'info')
+        // ns.toast(ns.sprintf("scheduling for %s with %s %s", p.target, perc.toString(), gpc.toString()), 'info')
+        while(p.entries.length > 0) {
+            const entry = p.entries.shift() as Entry
+            // ns.tprint(entry)
+            schedule(ns, servers, entry, p.target)
+        }
+        const targetTime = (Date.now()+p.cycleTime).toString()
+        // ns.tprint("targetTime: "+targetTime)
+        await ns.write(fn, [targetTime], 'w')
+        ranks.shift()
     }
 }
 

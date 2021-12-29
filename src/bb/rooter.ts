@@ -20,7 +20,7 @@ export async function main(ns: NS): Promise<void> {
                 ns.toast(message, "success")
             }
         }
-        await ns.sleep(1000);
+        if(runForever) await ns.sleep(1000);
     } while(runForever)
 }
 

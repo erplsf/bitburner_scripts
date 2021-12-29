@@ -11,32 +11,36 @@ export const costs = {
     'hack': 1.70
 }
 
-const wrc = 1.75  // weaken cost per thread
-const grc = 1.75  // grow cost per thread
-const hrc = 1.70  // hack cost per thread
+// TODO extract info for servers into db - don't need to requery all of it each time
+export function plan(ns: NS, host: string, perc: number, gpc: number): Plan {
+    perc = Math.min(perc, 1)
+    gpc = Math.max(gpc, 1)
 
-const gpc = 2 // growth rate of original money
-
-// TODO: broken with timing and splitting - can't handle over 0.1 perc
-export function plan(ns: NS, host: string, perc: number): Plan {
     const maxMoney = ns.getServerMaxMoney(host)
     const curMoney = ns.getServerMoneyAvailable(host)
-    const growScale = 1-(curMoney/maxMoney) // scale growth as we reach maxMoney
+    const growScale = curMoney/maxMoney // scale hacks proportionally to max money so we can grow faster
+    const revGrowScale = 1 - growScale // scale additional growth reversely as we reach maxMoney
+
+    const minSec = ns.getServerMinSecurityLevel(host)
+    const curSec = ns.getServerSecurityLevel(host)
+    const secScale = (curSec / minSec)
 
     const hackPercentagePerThread = ns.hackAnalyze(host)   // returns DECIMALS
-    const threadsToReachDesiredPerc = Math.floor(perc / hackPercentagePerThread) // threads needed to reach target perc
+    const threadsToReachDesiredPerc = Math.max(1,Math.floor((perc / hackPercentagePerThread)*growScale)) // threads needed to reach target perc
 
     const secIncreasePerHack = threadsToReachDesiredPerc * hpt // security increase to reach perc
-    const threadsToOffsetHack = 1 + Math.ceil(secIncreasePerHack / wpt) // threads to offset hack security growth
+    const threadsToOffsetHack = 1 + Math.ceil((secIncreasePerHack / wpt)*secScale) // threads to offset hack security growth
 
-    const wantedGrowthRate = Math.max(1/(1-perc)+((gpc-1)*growScale),1)
+    const wantedGrowthRate = Math.max(1/(1-perc)+(Math.min((gpc-1)*revGrowScale),
+                                                  0),
+                                      1)
 
     const threadsToGrowMoneyBack = 1 + Math.ceil(
         ns.growthAnalyze(host,wantedGrowthRate)
     ) // threads required to offset hack
     const secIncreasePerGrow = threadsToGrowMoneyBack * gpt // security increase per growth
 
-    const threadsToOffsetGrowth = 1 + Math.ceil(secIncreasePerGrow / wpt) // threads to offset growth
+    const threadsToOffsetGrowth = 1 + Math.ceil((secIncreasePerGrow / wpt)*secScale) // threads to offset growth
 
     const weakenTime = Math.ceil(ns.getWeakenTime(host))
     const hackTime = Math.ceil(ns.getHackTime(host))
