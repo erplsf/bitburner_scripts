@@ -17,6 +17,7 @@ const hrc = 1.70  // hack cost per thread
 
 const gpc = 0.1 // growth rate
 
+// TODO: broken with timing and splitting - can't handle over 0.1 perc
 export function plan(ns: NS, host: string, perc: number): Plan {
     const maxMoney = ns.getServerMaxMoney(host)
     const curMoney = ns.getServerMoneyAvailable(host)

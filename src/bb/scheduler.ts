@@ -35,11 +35,10 @@ async function scheduleAll(ns: NS, servers: Server[], plans: Plan[]): Promise<vo
         // ns.tprint(ns.sprintf("free / total: %s / %s", totalFreeRam.toString(), plan.totalRam.toString()))
         if (totalFreeRam < plan.totalRam) break // TODO: break or continue? break will only schedule top ones, continue will fill all
         ns.toast(ns.sprintf("scheduling for %s", plan.target), 'info')
-        let scheduled: boolean
         while(plan.entries.length > 0) {
             const entry = plan.entries.shift() as Entry
             // ns.tprint(entry)
-            scheduled = schedule(ns, servers, entry, plan.target)
+            schedule(ns, servers, entry, plan.target)
         }
     }
 }

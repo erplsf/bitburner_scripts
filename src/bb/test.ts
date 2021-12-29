@@ -5,7 +5,7 @@ import { rankAll } from "./rank.js";
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
     const top = rankAll(ns)[0]
-    const p = plan(ns, top, 0.05)
+    const p = plan(ns, top, 0.5)
     ns.tprint(top)
     ns.tprint(p)
 }
