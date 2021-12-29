@@ -1,7 +1,11 @@
 import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
-import { getRams } from "./scheduler.js";
+import { plan } from "./plan.js";
+import { rankAll } from "./rank.js";
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
-    ns.tprint(getRams(ns))
+    const top = rankAll(ns)[0]
+    const p = plan(ns, top, 0.01)
+    ns.tprint(top)
+    ns.tprint(p)
 }

@@ -5,8 +5,18 @@ const gpt = 0.004 // weaken security decrease per thread
 const hpt = 0.002 // weaken security decrease per thread
 const pad = 100 // padding between finishes in ms
 
+export const costs = {
+    'weaken': 1.75,
+    'grow': 1.75,
+    'hack': 1.70
+}
+
+const wrc = 1.75  // weaken cost per thread
+const grc = 1.75  // grow cost per thread
+const hrc = 1.70  // hack cost per thread
+
 export function plan(ns: NS, host: string, perc: number): Plan {
-    const hackPercentagePerThread = ns.hackAnalyze(host) // returns percentage, convert to decimal
+    const hackPercentagePerThread = ns.hackAnalyze(host) / 100 // returns percentage, convert to decimal
     const threadsToReachDesiredPerc = Math.ceil(perc / hackPercentagePerThread) // threads needed to reach target perc
     const secIncreasePerHack = threadsToReachDesiredPerc * hpt // security increase to reach perc
     const threadsToOffsetHack = 1 + Math.ceil(secIncreasePerHack / wpt) // threads to offset hack security growth
@@ -46,8 +56,16 @@ export function plan(ns: NS, host: string, perc: number): Plan {
     const sw: Entry = {type: 'weaken', threads: threadsToOffsetGrowth, offset: swo}
     const g: Entry = {type: 'grow', threads: threadsToGrowMoneyBack, offset: go}
     const h: Entry = {type: 'hack', threads: threadsToReachDesiredPerc, offset: ho}
-    return [fw, sw, g, h]
+    const p: Plan = {
+        totalRam: 0,
+        entries: [],
+        cycleTime: 0
+    }
+    p.entries = [fw, sw, g, h]
+    p.totalRam = p.entries.map(e => e.threads * costs[e.type]).reduce((a, b) => a + b, 0)
+    p.cycleTime = (fwst + weakenTime) + (2 * pad) - fwst
+    return p
 }
 
-type Entry = {type: 'hack'|'weaken'|'grow', threads: number, offset: number}
-type Plan = Entry[]
+export type Entry = {type: 'hack'|'weaken'|'grow', threads: number, offset: number}
+export type Plan = {totalRam: number, entries: Entry[], cycleTime: number}

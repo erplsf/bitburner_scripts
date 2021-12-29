@@ -9,10 +9,10 @@ export async function main(ns: NS): Promise<void> {
 
     const stck = find(ns, 'home', target, [], [])
     const cmd = stck.map(serv => `connect ${serv};`).join('')
-    runCmd('home;' + cmd)
+    runCmd(cmd)
 }
 
-function find(ns: NS, curr: string, targ: string, scnd: string[], stck: string[]): string[] {
+export function find(ns: NS, curr: string, targ: string, scnd: string[], stck: string[]): string[] {
     if (curr == targ) {
         stck.push(targ)
         return stck

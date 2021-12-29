@@ -1,6 +1,6 @@
 import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
 
-const freeRam = 10
+const freeRam = 16
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
