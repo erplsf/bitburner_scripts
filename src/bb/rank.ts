@@ -13,5 +13,6 @@ export function rankAll(ns: NS): string[] {
 function rankOne(ns: NS, host: string): number {
     const wT = Math.ceil(ns.getWeakenTime(host))
     const mM = ns.getServerMaxMoney(host)
-    return Math.ceil(mM / wT)
+    const cTH = ns.hackAnalyzeChance(host)
+    return Math.ceil((mM / wT) * cTH)
 }

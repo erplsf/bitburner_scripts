@@ -16,11 +16,11 @@ const grc = 1.75  // grow cost per thread
 const hrc = 1.70  // hack cost per thread
 
 export function plan(ns: NS, host: string, perc: number): Plan {
-    const hackPercentagePerThread = ns.hackAnalyze(host) / 100 // returns percentage, convert to decimal
-    const threadsToReachDesiredPerc = Math.ceil(perc / hackPercentagePerThread) // threads needed to reach target perc
+    const hackPercentagePerThread = ns.hackAnalyze(host)   // returns DECIMALS
+    const threadsToReachDesiredPerc = Math.floor(perc / hackPercentagePerThread) // threads needed to reach target perc
     const secIncreasePerHack = threadsToReachDesiredPerc * hpt // security increase to reach perc
     const threadsToOffsetHack = 1 + Math.ceil(secIncreasePerHack / wpt) // threads to offset hack security growth
-    const threadsToGrowMoneyBack = 1 + Math.ceil(ns.growthAnalyze(host, 1 + perc)) // threads required to offset hack
+    const threadsToGrowMoneyBack = 1 + Math.ceil(ns.growthAnalyze(host, 1/(1-perc)+0.01)) // threads required to offset hack
     const secIncreasePerGrow = threadsToGrowMoneyBack * gpt // security increase per growth
     const threadsToOffsetGrowth = 1 + Math.ceil(secIncreasePerGrow / wpt) // threads to offset growth
     const weakenTime = Math.ceil(ns.getWeakenTime(host))
@@ -59,8 +59,10 @@ export function plan(ns: NS, host: string, perc: number): Plan {
     const p: Plan = {
         totalRam: 0,
         entries: [],
-        cycleTime: 0
+        cycleTime: 0,
+        target: ""
     }
+    p.target = host
     p.entries = [fw, sw, g, h]
     p.totalRam = p.entries.map(e => e.threads * costs[e.type]).reduce((a, b) => a + b, 0)
     p.cycleTime = (fwst + weakenTime) + (2 * pad) - fwst
@@ -68,4 +70,4 @@ export function plan(ns: NS, host: string, perc: number): Plan {
 }
 
 export type Entry = {type: 'hack'|'weaken'|'grow', threads: number, offset: number}
-export type Plan = {totalRam: number, entries: Entry[], cycleTime: number}
+export type Plan = {totalRam: number, entries: Entry[], cycleTime: number, target: string}
