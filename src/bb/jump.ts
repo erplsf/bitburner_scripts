@@ -35,3 +35,6 @@ export function find(ns: NS, curr: string, targ: string, scnd: string[], stck: s
     return []
 }
 
+export function autocomplete({ servers }: { servers: string[] }): string[] {
+    return servers;
+}

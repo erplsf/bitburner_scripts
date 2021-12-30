@@ -3,13 +3,14 @@ import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
 const wpt = 0.05 // weaken security decrease per thread
 const gpt = 0.004 // grow security decrease per thread
 const hpt = 0.002 // hack security decrease per thread
-const pad = 200 // padding between finishes in ms
 
 export const costs = {
     'weaken': 1.75,
     'grow': 1.75,
     'hack': 1.70
 }
+
+export const msPad = 200 // padding between finishes in ms
 
 // TODO extract info for servers into db - don't need to requery all of it each time
 export function plan(ns: NS, host: string, perc: number, gpc: number): Plan {
@@ -57,9 +58,9 @@ export function plan(ns: NS, host: string, perc: number, gpc: number): Plan {
     // ns.tprint(wt)
     // ns.tprint(gt)
     const fwst = now // first weaken starts now (but ends after the hack)
-    const hst = (fwst + weakenTime) - pad - hackTime // hack finishes <pad> before weaken
-    const gst = (fwst + weakenTime) + pad - growTime // grow finishes after first weaken but before second weaken
-    const swst = (fwst + weakenTime) + (2 * pad) - weakenTime // second weaken should finish last
+    const hst = (fwst + weakenTime) - msPad - hackTime // hack finishes <pad> before weaken
+    const gst = (fwst + weakenTime) + msPad - growTime // grow finishes after first weaken but before second weaken
+    const swst = (fwst + weakenTime) + (2 * msPad) - weakenTime // second weaken should finish last
     // ns.tprint(fwst)
     // ns.tprint(swst)
     // ns.tprint(gst)
@@ -85,7 +86,7 @@ export function plan(ns: NS, host: string, perc: number, gpc: number): Plan {
     p.target = host
     p.entries = [fw, sw, g, h]
     p.totalRam = p.entries.map(e => e.threads * costs[e.type]).reduce((a, b) => a + b, 0)
-    p.cycleTime = (fwst + weakenTime) + (2 * pad) - fwst
+    p.cycleTime = (fwst + weakenTime) + (2 * msPad) - fwst
     return p
 }
 

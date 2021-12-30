@@ -1,6 +1,6 @@
 import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
 import { rootedServers } from "./utils.js";
-import { costs, Entry, plan, Plan } from "./plan.js";
+import { costs, Entry, plan, msPad } from "./plan.js";
 import { spread } from "./spreader.js";
 import { rankAll } from "./rank.js";
 
@@ -25,7 +25,7 @@ const minPerc = 0.01
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
     const ranks = rankAll(ns)
-    const servs = getRams(ns)
+    const servs = getFreeRams(ns)
     // await scheduleAll(ns, servs, [ranks[0]])
     await scheduleAll(ns, servs, ranks)
 }
@@ -36,46 +36,45 @@ async function scheduleAll(ns: NS, servers: Server[], ranks: string[]): Promise<
     let perc = desiredPerc
     let gpc = desiredGrowth // growth rate of original money
     while (ranks.length > 0 && servers.length > 0) {
-        const serv = ranks[0]
-        const fn = '.s.'+serv+'.txt'
+        const host = ranks[0]
+        const fn = '.s.'+host+'.txt'
 
-        // ns.tprint("checking serv: " + serv)
-        if(ns.fileExists(fn)) {
-            const timestamp = ns.read(fn) as number
-            // ns.tprint("currentTime: " + Date.now().toString())
-            // ns.tprint("timeRead: " + timestamp.toString())
-            if (timestamp >= Date.now()) {
-                // ns.tprint("timestamp lower skipping")
-                ranks.shift()
-                break // TODO: break will stop until target finishes, continue will fill other plans too
-            } else {
-                // ns.tprint("timestamp higher, removing and running")
-                ns.rm(fn)
-            }
-        }
+        if(timestampFresh(ns, fn)) break
 
-        const totalFreeRam = servers.map(p => p[1]).reduce((a, b) => a + b, 0)
-        const cTime = 0 // current
-        let p = plan(ns, serv, perc, gpc)
+        let p = plan(ns, host, perc, gpc)
         // ns.tprint(ns.sprintf("free / total: %s / %s", totalFreeRam.toString(), plan.totalRam.toString()))
-        while (totalFreeRam < p.totalRam && perc >= minPerc) {
-            perc *= 0.5
-            gpc *= 0.5
-            p = plan(ns, serv, perc, gpc)
-            // break // TODO: break or continue? break will only schedule top ones, continue will fill all
+        // while (totalFreeRam < p.totalRam && perc >= minPerc) {
+        //     perc *= 0.5
+        //     gpc *= 0.5
+        //     p = plan(ns, host, perc, gpc)
+        //     // break // TODO: break or continue? break will only schedule top ones, continue will fill all
+        // }
+        // if (perc < minPerc) break
+        let cycleCount = 0
+        let cTime = 0 // current
+        let totalFreeRam = 0
+        while(cTime < p.cycleTime) {
+            totalFreeRam = getFreeRams(ns).map(p => p.freeRam).reduce((a, b) => a + b, 0)
+            if (totalFreeRam < p.totalRam) break
+            while(p.entries.length > 0) {
+                const entry = p.entries.shift() as Entry
+                entry.offset += cTime
+                // ns.tprint(entry)
+                schedule(ns, servers, entry, p.target)
+            }
+            cTime += msPad
+            cycleCount++
         }
-        if (perc < minPerc) break
+
+        // if (perc < minPerc) break
+        if (cycleCount == 0) break
         if (totalFreeRam < p.totalRam) break
+
         // ns.toast(ns.sprintf("scheduling for %s", p.target), 'info')
-        ns.toast(ns.sprintf("scheduling for %s with %s %s", p.target, perc.toString(), gpc.toString()), 'info')
-        while(p.entries.length > 0) {
-            const entry = p.entries.shift() as Entry
-            // ns.tprint(entry)
-            schedule(ns, servers, entry, p.target)
-        }
-        const targetTime = (Date.now()+p.cycleTime).toString()
+        ns.toast(ns.sprintf("scheduling %s cycles for %s", cycleCount.toString(), p.target), 'info', 10000)
+        const targetTime = Date.now()+p.cycleTime
         // ns.tprint("targetTime: "+targetTime)
-        await ns.write(fn, [targetTime], 'w')
+        await writeTimestamp(ns, fn, targetTime)
         ranks.shift()
     }
 }
@@ -84,21 +83,21 @@ function schedule(ns: NS, servers: Server[], entry: Entry, host: string): boolea
     const minRam = Math.min(costs.weaken, costs.grow, costs.hack)
     let ramLeftToSchedule = entry.threads * costs[entry.type]
     while(ramLeftToSchedule > 0 && servers.length > 0) {
-        if(servers[0][1] < minRam) {
+        if(servers[0].freeRam < minRam) {
             servers.shift()
             continue
         }
         const server = servers[0] as Server
         // ns.tprint(ns.sprintf("s: %s", server[0]))
-        const t = Math.min(Math.floor(server[1] / costs[entry.type]), entry.threads)
+        const t = Math.min(Math.floor(server.freeRam / costs[entry.type]), entry.threads)
         // ns.tprint(ns.sprintf("t: %s", t.toString()))
         const totalCost = t * costs[entry.type]
-        const pid = ns.exec(typeMap[entry.type], server[0], t, host, entry.offset, Date.now())
+        const pid = ns.exec(typeMap[entry.type], server.name, t, host, entry.offset, Date.now())
         if(pid == 0) {
             // ns.tprint(ns.sprintf("something went wrong on %s", server[0]))
             return false
         }
-        server[1] -= totalCost
+        server.freeRam -= totalCost
         entry.threads -= t
         ramLeftToSchedule = entry.threads * costs[entry.type]
     }
@@ -109,24 +108,46 @@ function schedule(ns: NS, servers: Server[], entry: Entry, host: string): boolea
 }
 
 async function prepareServers(ns: NS, servers: Server[]): Promise<void> {
-    for(const [name] of servers) {
+    for(const serv of servers) {
         // if(name != 'home') ns.killall(name)
-        await spread(ns, 'home', name, ...files)
+        await spread(ns, 'home', serv.name, ...files)
     }
 }
 
-export function getRams(ns: NS): Server[] {
+export function getFreeRams(ns: NS): Server[] {
     const servs = rootedServers(ns)
-    const rams: [string, number][] = servs.map(host => freeRamOnServ(ns, host)).filter(pair => pair[1] != 0)
-    rams.sort((a, b) => a[1] - b[1])
+    const rams: Server[] = servs.map(host => freeRamOnServ(ns, host)).filter(pair => pair.freeRam != 0)
+    rams.sort((a, b) => a.freeRam - b.freeRam)
     return rams
 }
 
 function freeRamOnServ(ns: NS, host: string): Server {
     if(host == 'home')
-        return [host, ns.getServerMaxRam(host)-ns.getServerUsedRam(host)-freeRamOnHome]
+        return { name: host, freeRam: ns.getServerMaxRam(host)-ns.getServerUsedRam(host)-freeRamOnHome }
     else
-        return [host, ns.getServerMaxRam(host)-ns.getServerUsedRam(host)]
+        return { name: host, freeRam: ns.getServerMaxRam(host)-ns.getServerUsedRam(host) }
 }
 
-type Server = [string, number]
+function timestampFresh(ns: NS, fn: string): boolean {
+    // ns.tprint("checking serv: " + serv)
+    if(ns.fileExists(fn)) {
+        const timestamp = ns.read(fn) as number
+        // ns.tprint("currentTime: " + Date.now().toString())
+        // ns.tprint("timeRead: " + timestamp.toString())
+        if (timestamp >= Date.now()) {
+            // ns.tprint("timestamp lower skipping")
+            return true // TODO: break will stop until target finishes, continue will fill other plans too
+        } else {
+            // ns.tprint("timestamp higher, removing and running")
+            ns.rm(fn)
+            return false
+        }
+    }
+    return false
+}
+
+async function writeTimestamp(ns: NS, fn: string, timestamp: number): Promise<void> {
+    await ns.write(fn, [timestamp.toString(), 'w'])
+}
+
+type Server = {name: string, freeRam: number}
