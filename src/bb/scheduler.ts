@@ -66,8 +66,8 @@ async function scheduleAll(ns: NS, servers: Server[], ranks: string[]): Promise<
         }
         if (perc < minPerc) break
         if (totalFreeRam < p.totalRam) break
-        ns.toast(ns.sprintf("scheduling for %s", p.target), 'info')
-        // ns.toast(ns.sprintf("scheduling for %s with %s %s", p.target, perc.toString(), gpc.toString()), 'info')
+        // ns.toast(ns.sprintf("scheduling for %s", p.target), 'info')
+        ns.toast(ns.sprintf("scheduling for %s with %s %s", p.target, perc.toString(), gpc.toString()), 'info')
         while(p.entries.length > 0) {
             const entry = p.entries.shift() as Entry
             // ns.tprint(entry)
