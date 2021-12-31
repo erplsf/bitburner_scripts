@@ -1,4 +1,5 @@
 node_modules
+bitburner
 .log
 dist
 *.js
