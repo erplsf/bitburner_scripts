@@ -1,4 +1,5 @@
 import {NS, Server} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
+import {getUniqueServers} from './pathfinder.js'
 
 export function buildServerMap(
   ns: NS,
@@ -15,13 +16,6 @@ export function buildServerMap(
   }
 }
 
-export function getUniqueServers(ns: NS): string[] {
-  const map = new Map()
-  buildServerMap(ns, 'home', map)
-  const servers = Array.from(map.values()).flat()
-  return unique(servers)
-}
-
 export function unique(array: string[]): string[] {
   return array.reduce((acc: string[], serv: string) => {
     const exists = acc.find((ex: string) => ex == serv)
@@ -32,17 +26,20 @@ export function unique(array: string[]): string[] {
 
 type ServerFilter = (hostname: string) => boolean
 
-export function filterServers(ns: NS, filterFunction: ServerFilter): string[] {
-  const servers = getUniqueServers(ns)
+export async function filterServers(
+  ns: NS,
+  filterFunction: ServerFilter
+): Promise<string[]> {
+  const servers = await getUniqueServers(ns)
   return servers.filter(filterFunction)
 }
 
-export function rootedServers(ns: NS): string[] {
-  return filterServers(ns, (serv) => ns.hasRootAccess(serv))
+export async function rootedServers(ns: NS): Promise<string[]> {
+  return await filterServers(ns, (serv) => ns.hasRootAccess(serv))
 }
 
-export function rootedHackableServers(ns: NS): string[] {
-  return filterServers(
+export async function rootedHackableServers(ns: NS): Promise<string[]> {
+  return await filterServers(
     ns,
     (serv) =>
       ns.hasRootAccess(serv) &&

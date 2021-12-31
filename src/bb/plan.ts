@@ -13,7 +13,12 @@ export const costs = {
 export const msPad = 200 // padding between finishes in ms
 
 // TODO extract info for servers into db - don't need to requery all of it each time
-export function plan(ns: NS, host: string, perc: number, gpc: number): Plan {
+export function planMoney(
+  ns: NS,
+  host: string,
+  perc: number,
+  gpc: number
+): Plan {
   perc = Math.min(perc, 1)
   gpc = Math.max(gpc, 1)
 
@@ -107,6 +112,26 @@ export function plan(ns: NS, host: string, perc: number, gpc: number): Plan {
     .reduce((a, b) => a + b, 0)
   p.cycleTime = fwst + weakenTime + 2 * msPad - fwst
   return p
+}
+
+export function planXp(ns: NS, host: string, ram: number): void {
+  // TODO: solve system of linear ineqaulities
+  // 1.75 * (W_t + G_t) <= RAM
+  // 0.05 * W_t - 0.004 * G_t >= 0
+  let solved = false
+  let wT = Math.floor(ram / 2 / costs.weaken)
+  let gT = Math.floor(ram / 2 / costs.grow)
+  while (!solved) {
+    if (wT * wpt - gT * gpt < 0) {
+      wT++
+      gT--
+      continue
+    } else {
+      wT--
+      gT++
+    }
+  }
+  ns.tprint(ns.sprintf('w %s g %s', wT.toString(), gT.toString()))
 }
 
 export type Entry = {

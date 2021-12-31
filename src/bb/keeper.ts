@@ -4,10 +4,10 @@ import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
 export async function main(ns: NS): Promise<void> {
   if (ns.args.length < 2) return
 
-  const ms = ns.args.shift() as number
+  const s = ns.args.shift() as number
   const filenames = ns.args as string[]
 
-  if (ms <= 0) return
+  if (s <= 0) return
   if (filenames.length == 0) return
 
   for (;;) {
@@ -20,6 +20,6 @@ export async function main(ns: NS): Promise<void> {
       while (ns.ps('home').filter((info) => info.pid == pid).length != 0)
         await ns.sleep(100)
     }
-    await ns.sleep(ms)
+    await ns.sleep(s * 1000)
   }
 }

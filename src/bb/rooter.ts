@@ -1,17 +1,19 @@
 import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
 
-import {getUniqueServers} from './utils.js'
+import {getUniqueServers} from './pathfinder.js'
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
-  let servers = getUniqueServers(ns)
+  let servers = await getUniqueServers(ns)
   let runForever = false
   if (ns.args.length != 0 && ns.args[0] == true) {
     runForever = true
   }
   do {
     const kits = getRootkits(ns)
-    servers = servers.filter((server) => !ns.hasRootAccess(server))
+    servers = servers.filter(
+      (server) => ns.serverExists(server) && !ns.hasRootAccess(server)
+    )
     for (const server of servers) {
       if (kits.length >= ns.getServerNumPortsRequired(server)) {
         for (const kit of kits) kit(server)

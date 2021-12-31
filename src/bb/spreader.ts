@@ -14,7 +14,7 @@ export async function main(ns: NS): Promise<void> {
   if (!ns.fileExists(filename)) return
 
   const rootedServers = rootedHackableServers(ns)
-  for (const serv of rootedServers) {
+  for (const serv of await rootedServers) {
     // ns.tprint(ns.sprintf("spreading for %s", serv))
     if (replace) {
       ns.killall(serv)
