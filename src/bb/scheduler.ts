@@ -53,6 +53,7 @@ async function scheduleAll(ns: NS, servers: Server[], ranks: string[]): Promise<
         let cycleCount = 0
         let cTime = 0 // current
         let totalFreeRam = 0
+        // TODO: refactor into a simple generator of offsets
         while(cTime < p.cycleTime) {
             totalFreeRam = getFreeRams(ns).map(p => p.freeRam).reduce((a, b) => a + b, 0)
             if (totalFreeRam < p.totalRam) break
@@ -68,13 +69,15 @@ async function scheduleAll(ns: NS, servers: Server[], ranks: string[]): Promise<
 
         // if (perc < minPerc) break
         if (cycleCount == 0) break
+
+        ns.toast(ns.sprintf("scheduling %s cycles for %s", cycleCount.toString(), p.target), 'info', 2000)
+        const targetTime = Date.now()+p.cycleTime+cTime
+        // ns.tprint("targetTime: "+targetTime)
+        await writeTimestamp(ns, fn, targetTime)
+
         if (totalFreeRam < p.totalRam) break
 
         // ns.toast(ns.sprintf("scheduling for %s", p.target), 'info')
-        ns.toast(ns.sprintf("scheduling %s cycles for %s", cycleCount.toString(), p.target), 'info', 10000)
-        const targetTime = Date.now()+p.cycleTime
-        // ns.tprint("targetTime: "+targetTime)
-        await writeTimestamp(ns, fn, targetTime)
         ranks.shift()
     }
 }

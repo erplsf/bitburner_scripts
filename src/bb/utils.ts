@@ -73,3 +73,7 @@ export function round(value: number, precision: number): number {
     const multiplier = Math.pow(10, precision || 0);
     return Math.round(value * multiplier) / multiplier;
 }
+
+function calculateGainedFavor(rep: number): number {
+    return 1+(Math.log((rep+25000)/25000)/Math.log(1.02))
+}

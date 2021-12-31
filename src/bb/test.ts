@@ -11,3 +11,7 @@ export async function main(ns: NS): Promise<void> {
     ns.tprint(top)
     ns.tprint(p)
 }
+
+function calculateGainedFavor(rep: number): number {
+    return 1+(Math.log((rep+25000)/25000)/Math.log(1.02))
+}

@@ -11,7 +11,7 @@ export async function main(ns: NS): Promise<void> {
     const wait = ns.args[1] as number
 
     // for(const cmd of silentCmds) ns.disableLog(cmd)
-    ns.clearLog()
+    // ns.clearLog()
 
     await ns.sleep(wait)
     await ns.weaken(host)
