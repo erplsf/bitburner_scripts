@@ -1,4 +1,4 @@
-import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
+import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
 
 // const silentCmds = [
 //     'weaken',
@@ -6,10 +6,10 @@ import { NS } from "../../bitburner/src/ScriptEditor/NetscriptDefinitions";
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
-    const host = ns.args[0] as string
+  const host = ns.args[0] as string
 
-    // for(const cmd of silentCmds) ns.disableLog(cmd)
-    // ns.clearLog()
+  // for(const cmd of silentCmds) ns.disableLog(cmd)
+  // ns.clearLog()
 
-    for (;;) await ns.weaken(host)
+  for (;;) await ns.weaken(host)
 }
