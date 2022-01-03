@@ -4,14 +4,12 @@ import {cheat, runCmd} from './utils.js'
 
 const hosts = ['CSEC', 'avmnite-02h', 'I.I.I.I', 'run4theh111z']
 
-/** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
   for (const host of hosts) {
     if (
       ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(host) &&
       !ns.getServer(host).backdoorInstalled
     ) {
-      // ns.tprint('will run this host ' + host)
       const path = await getPath(ns, host)
       runCmd(buildConnectionString(path))
       runCmd('backdoor')

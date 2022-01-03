@@ -19,7 +19,7 @@ export async function getUniqueServers(ns: NS): Promise<string[]> {
   return Object.keys(await buildOrGetMap(ns))
 }
 
-async function buildOrGetMap(ns: NS): Promise<PathMap> {
+export async function buildOrGetMap(ns: NS): Promise<PathMap> {
   let map: PathMap
   if (!ns.fileExists(filename, 'home')) {
     map = scan(ns)
@@ -28,13 +28,20 @@ async function buildOrGetMap(ns: NS): Promise<PathMap> {
     map = JSON.parse(ns.read(filename))
   }
   enrichMapWithPurchasedServers(ns, map)
+  enrichMapWithDarkWeb(ns, map)
   return map
 }
 
-function enrichMapWithPurchasedServers(ns: NS, map: PathMap) {
+function enrichMapWithPurchasedServers(ns: NS, map: PathMap): void {
   ns.getPurchasedServers().forEach((pServ) => {
-    map[pServ] = []
+    map[pServ] = ['home', pServ]
   })
+}
+
+function enrichMapWithDarkWeb(ns: NS, map: PathMap): void {
+  if (ns.serverExists('darkweb')) {
+    map['darkweb'] = ['home', 'darkweb']
+  }
 }
 
 function scan(ns: NS): PathMap {

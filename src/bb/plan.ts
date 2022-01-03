@@ -121,8 +121,13 @@ export function planXp(ns: NS, host: string, ram: number): void {
   let solved = false
   let wT = Math.floor(ram / 2 / costs.weaken)
   let gT = Math.floor(ram / 2 / costs.grow)
+  let minDiff = 0
+  let sameCount = 0
   while (!solved) {
-    if (wT * wpt - gT * gpt < 0) {
+    const diff = wT * wpt - gT * gpt
+    if (diff > 0 && diff < minDiff) minDiff = diff
+
+    if (diff < 0) {
       wT++
       gT--
       continue

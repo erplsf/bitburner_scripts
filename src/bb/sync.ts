@@ -5,9 +5,14 @@ async function listFiles(server: string): Promise<Record<string, string>> {
   return await response.json()
 }
 
-async function requestFile(server: string, filename: string): Promise<string> {
-  const response = await fetch(server + '/' + filename)
-  return await response.text()
+async function downloadFile(
+  ns: NS,
+  server: string,
+  filename: string
+): Promise<void> {
+  let targetPath = filename
+  if (targetPath.split('/').length) targetPath = '/' + targetPath
+  await ns.wget(server + '/' + filename, targetPath)
 }
 
 async function digestMessage(message: string): Promise<string> {
@@ -18,18 +23,11 @@ async function digestMessage(message: string): Promise<string> {
   return hashHex
 }
 
-/** @param {NS} ns **/
+const server = 'http://localhost:3000'
+
 export async function main(ns: NS): Promise<void> {
-  const server = 'http://localhost:3000'
-
-  let runForever = false
-  if (ns.args.length != 0 && ns.args[0] == true) {
-    runForever = true
-  }
-
   ns.disableLog('sleep')
-  do {
-    await ns.sleep(1000)
+  for (;;) {
     const files = (await listFiles(server).catch(() => {
       return {}
     })) as Record<string, string>
@@ -39,14 +37,19 @@ export async function main(ns: NS): Promise<void> {
         const existingHash = await digestMessage(existingContents)
         const sourceHash = files[file]
         if (existingHash != sourceHash) {
-          const sourceContents = await requestFile(server, file).catch(() => '')
-          if (sourceContents.length != 0)
-            await ns.write(file, [sourceContents], 'w')
+          await downloadFile(ns, server, file)
+          if (file == 'manager.js') {
+            ns.kill('manager.js', 'home')
+            ns.run('manager.js', 1)
+          } else if (file == 'sync.js') {
+            ns.exec('sync.js', 'home', 1, Date.now().toString())
+            ns.exit()
+          }
         }
       } else {
-        const sourceContents = await requestFile(server, file)
-        await ns.write(file, [sourceContents], 'w')
+        await downloadFile(ns, server, file)
       }
     }
-  } while (runForever)
+    await ns.sleep(1000)
+  }
 }
