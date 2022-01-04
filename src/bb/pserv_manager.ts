@@ -5,8 +5,10 @@ export const nsFilename = '.s.no-schedule.txt'
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
-  const pServers = ns.getPurchasedServers()
-  const pRams = new Set(pServers.map((host) => ns.getServerMaxRam(host)))
+  const pServers: [string, number][] = ns
+    .getPurchasedServers()
+    .map((host) => [host, ns.getServerMaxRam(host)])
+  const pRams = new Set(pServers.map((pserv) => pserv[1]))
 
   const maxRam = ns.getPurchasedServerMaxRam()
   const maxCount = ns.getPurchasedServerLimit()
@@ -38,33 +40,29 @@ export async function main(ns: NS): Promise<void> {
   )
   if (affordableServers == 0) return
 
-  for (const pServ of pServers) {
-    await ns.write(nsFilename, [''], 'w')
-    let deletedCount = 0
-    if (
-      ns.getServerMaxRam(pServ) < affordableRam &&
-      deletedCount < affordableServers
-    ) {
-      await ns.scp(nsFilename, 'home', pServ)
-      ns.killall(pServ)
-      ns.deleteServer(pServ)
-      deletedCount++
-    }
-    ns.rm(nsFilename, 'home')
+  const smallerPServs = pServers.filter((pServ) => pServ[1] < affordableRam)
+  const serversToDelete = affordableServers - (maxCount - smallerPServs.length)
+
+  await ns.write(nsFilename, [''], 'w')
+  for (let i = 0; i < serversToDelete; i++) {
+    const pServ = smallerPServs[i][0]
+    await ns.scp(nsFilename, 'home', pServ)
+    ns.killall(pServ)
+    ns.deleteServer(pServ)
   }
+  ns.rm(nsFilename, 'home')
 
   const serversToBuy = Math.min(
-    maxCount - ns.getPurchasedServers().length,
-    affordableServers
+    affordableServers,
+    maxCount - ns.getPurchasedServers().length
   )
-
   if (serversToBuy == 0) return
 
   ns.toast(
     ns.sprintf(
       'will buy %s servers with %s ram and %s cost',
       serversToBuy.toString(),
-      ns.nFormat(affordableRam * 1024 ** 2, '00ib'),
+      ns.nFormat((affordableRam * 1024) ** 2, '0ib'),
       ns.nFormat(affordablePrice, '0a')
     ),
     'info',

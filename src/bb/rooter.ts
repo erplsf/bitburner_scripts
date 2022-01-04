@@ -18,8 +18,8 @@ export async function main(ns: NS): Promise<void> {
       if (kits.length >= ns.getServerNumPortsRequired(server)) {
         for (const kit of kits) kit(server)
         ns.nuke(server)
-        const message = ns.sprintf('gained root access for: %s', server)
-        ns.toast(message, 'success')
+        // const message = ns.sprintf('gained root access for: %s', server)
+        // ns.toast(message, 'success')
       }
     }
     if (runForever) await ns.sleep(1000)

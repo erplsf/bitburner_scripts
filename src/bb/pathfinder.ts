@@ -12,7 +12,8 @@ const filename = 'servers.db'
 
 export async function getPath(ns: NS, host: string): Promise<string[]> {
   const map = await buildOrGetMap(ns)
-  return map[host]
+  if (map[host]) return map[host]
+  else return []
 }
 
 export async function getUniqueServers(ns: NS): Promise<string[]> {
@@ -67,9 +68,11 @@ function scanInternal(
 }
 
 export function buildConnectionString(servers: string[]): string {
-  return ['home', ...servers.slice(1).map((host) => `connect ${host}`)].join(
-    ';'
-  )
+  if (servers.length)
+    return ['home', ...servers.slice(1).map((host) => `connect ${host}`)].join(
+      ';'
+    )
+  else return ''
 }
 
 type PathMap = Record<string, string[]>

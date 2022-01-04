@@ -9,6 +9,7 @@ export async function main(ns: NS): Promise<void> {
   const target = ns.args[0] as string
 
   const path = await getPath(ns, target)
+  ns.tprint(path)
   const cmd = buildConnectionString(path)
 
   runCmd(cmd)

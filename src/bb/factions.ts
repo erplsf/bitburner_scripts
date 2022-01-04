@@ -5,8 +5,10 @@ import {cheat, runCmd} from './utils.js'
 const hosts = ['CSEC', 'avmnite-02h', 'I.I.I.I', 'run4theh111z']
 
 export async function main(ns: NS): Promise<void> {
+  let anyBackdoored = false
   for (const host of hosts) {
     if (
+      ns.hasRootAccess(host) &&
       ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(host) &&
       !ns.getServer(host).backdoorInstalled
     ) {
@@ -18,6 +20,8 @@ export async function main(ns: NS): Promise<void> {
           .disabled
       )
         await ns.sleep(100)
+      anyBackdoored = true
     }
   }
+  if (anyBackdoored) runCmd('home')
 }

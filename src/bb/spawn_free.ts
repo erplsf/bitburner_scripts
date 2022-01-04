@@ -10,7 +10,8 @@ export async function main(ns: NS): Promise<void> {
   const total = ns.getServerMaxRam('home')
   const used = ns.getServerUsedRam('home')
   const threads = Math.floor((total + ourCost - used - freeRam) / baseRam)
-  ns.tprint(
+  if (threads == 0) return
+  ns.toast(
     ns.sprintf(
       'will spawn %s with %d threads after exiting',
       filename,

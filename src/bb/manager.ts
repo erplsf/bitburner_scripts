@@ -3,10 +3,12 @@ import {getUniqueServers} from './pathfinder.js'
 
 const rooterParams = ['60', 'rooter.js']
 const schedulerParams = ['10', 'scheduler.js']
+const pservParams = ['60', 'pserv_manager.js']
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
   ns.disableLog('ALL')
+  ns.rm('servers.db.txt')
   for (;;) {
     // syncer
     if (ns.ps('home').filter((pi) => pi.filename == 'sync.js').length == 0) {
@@ -25,6 +27,9 @@ export async function main(ns: NS): Promise<void> {
 
     // scheduler
     ns.run('keeper.js', 1, ...schedulerParams)
+
+    // pserv_manager
+    ns.run('keeper.js', 1, ...pservParams)
 
     await ns.sleep(10000)
   }

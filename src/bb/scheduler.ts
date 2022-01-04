@@ -15,7 +15,7 @@ const typeMap = {
 }
 
 const desiredPerc = 0.5
-const desiredGrowth = 1 // TODO: fix, does nothing atm // growth rate of original money
+const desiredGrowth = 2 // TODO: fix, does nothing atm // growth rate of original money
 
 const minPerc = 0.01
 
@@ -57,11 +57,12 @@ async function scheduleAll(
     // ns.tprint(ns.sprintf('pre-scheduling for %s', host))
 
     let p = planMoney(ns, host, perc, gpc)
-    while (totalFreeRam < p.totalRam) {
-      perc *= 0.5
-      p = planMoney(ns, host, perc, gpc)
-    } // TODO: better system, deduplicate code, implement plan downscaling
-    if (perc < minPerc) break
+    if (totalFreeRam < p.totalRam) break
+    // while (totalFreeRam < p.totalRam) {
+    //   perc *= 0.5
+    //   p = planMoney(ns, host, perc, gpc)
+    // } // TODO: better system, deduplicate code, implement plan downscaling
+    // if (perc < minPerc) break
 
     const maxCycleCount = Math.floor(p.cycleTime / msPad)
     if (maxCycleCount == 0) {
@@ -105,6 +106,7 @@ async function scheduleAll(
   // const minServer = await weakestServer(ns)
   // ns.tprint('weakest: ' + minServer)
   // schedule(ns, servers, {type: 'weaken', threads: 0, offset: 0}, minServer, 0)
+  // ns.run('spawn_free.js', 1, 'weaken.js', 'joesguns', '0')
 }
 
 function schedule(

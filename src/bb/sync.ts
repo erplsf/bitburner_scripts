@@ -11,7 +11,7 @@ async function downloadFile(
   filename: string
 ): Promise<void> {
   let targetPath = filename
-  if (targetPath.split('/').length) targetPath = '/' + targetPath
+  if (targetPath.split('/').length > 1) targetPath = '/' + targetPath
   await ns.wget(server + '/' + filename, targetPath)
 }
 
