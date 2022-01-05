@@ -1,8 +1,10 @@
 import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
 import {rootedHackableServers} from './utils.js'
 
-export async function rankAll(ns: NS): Promise<string[]> {
-  const servs = await rootedHackableServers(ns)
+export async function rankAllForMoney(ns: NS): Promise<string[]> {
+  const servs = (await rootedHackableServers(ns)).filter(
+    (host) => ns.getServerMaxMoney(host) != 0
+  )
   const ranks: [string, number][] = servs.map((host) => [
     host,
     rankOne(ns, host),

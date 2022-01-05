@@ -1,7 +1,7 @@
 import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
 import {costs, Entry, planMoney, msPad, ramPercForXpGrind} from './plan.js'
 import {spread} from './spreader.js'
-import {rankAll, weakestServer} from './rank.js'
+import {rankAllForMoney, weakestServer} from './rank.js'
 import {rootedServers} from './utils.js'
 import {nsFilename} from './pserv_manager.js'
 
@@ -36,7 +36,7 @@ async function scheduleAll(ns: NS): Promise<void> {
   const perc = desiredPerc
   const gpc = desiredGrowth // growth rate of original money
   for (;;) {
-    const ranks = await rankAll(ns)
+    const ranks = await rankAllForMoney(ns)
     const servers = await getFreeRams(ns)
     const percForXpGrind = ramPercForXpGrind(ns, a, b)
     const totalTotalFreeRam = servers
