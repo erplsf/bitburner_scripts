@@ -1,5 +1,5 @@
 import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
-import {costs, Entry, planMoney, msPad} from './plan.js'
+import {costs, Entry, planMoney, msPad, ramPercForXpGrind} from './plan.js'
 import {spread} from './spreader.js'
 import {rankAll, weakestServer} from './rank.js'
 import {rootedServers} from './utils.js'
@@ -19,94 +19,109 @@ const desiredGrowth = 2 // TODO: fix, does nothing atm // growth rate of origina
 
 const minPerc = 0.01
 
+// https://www.desmos.com/calculator/ixh9vqpfic
+const a = 1.5
+const b = 24
+
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
   ns.disableLog('ALL')
-  const ranks = await rankAll(ns)
-  // ranks.reverse() // target worse first
-  const servs = await getFreeRams(ns)
-  // await scheduleAll(ns, servs, [ranks[0]])
-  await scheduleAll(ns, servs, ranks)
+  ns.enableLog('sleep')
+  await scheduleAll(ns)
 }
 
 // TODO: implement better automatic lowering of targets
-async function scheduleAll(
-  ns: NS,
-  servers: Server[],
-  ranks: string[]
-): Promise<void> {
-  await prepareServers(ns, servers)
-  let perc = desiredPerc
+async function scheduleAll(ns: NS): Promise<void> {
+  await prepareServers(ns, await getFreeRams(ns))
+  const perc = desiredPerc
   const gpc = desiredGrowth // growth rate of original money
-  let totalFreeRam = servers.map((p) => p.freeRam).reduce((a, b) => a + b, 0)
-  // ns.tprint(ns.sprintf('server count %s', servers.length.toString()))
-  // ns.tprint(ns.sprintf('ranks count %s', ranks.length.toString()))
+  for (;;) {
+    const ranks = await rankAll(ns)
+    const servers = await getFreeRams(ns)
+    const percForXpGrind = ramPercForXpGrind(ns, a, b)
+    const totalTotalFreeRam = servers
+      .map((p) => p.freeRam)
+      .reduce((a, b) => a + b, 0)
+    let totalFreeRam = totalTotalFreeRam * (1 - percForXpGrind)
+    // ns.tprint(
+    //   ns.sprintf(
+    //     'free / total - %s, xp / total - %s',
+    //     (totalFreeRam / totalTotalFreeRam).toFixed(2),
+    //     percForXpGrind.toFixed(2)
+    //   )
+    // )
+    // ns.tprint(ns.sprintf('server count %s', servers.length.toString()))
+    // ns.tprint(ns.sprintf('ranks count %s', ranks.length.toString()))
 
-  while (ranks.length > 0 && servers.length > 0) {
-    const host = ranks[0]
-    const fn = '.s.' + host + '.txt'
+    while (ranks.length > 0 && servers.length > 0) {
+      const host = ranks[0]
+      const fn = '.s.' + host + '.txt'
 
-    // ns.tprint(ns.sprintf('host %s', host))
+      // ns.tprint(ns.sprintf('host %s', host))
 
-    if (timestampFresh(ns, fn)) {
-      // ns.tprint(ns.sprintf('timestamp fresh, breaking'))
-      ranks.shift()
-      continue
-      // break // break stops the whole scheduling, continue allows to fill with lower targets
-    }
-    // ns.tprint(ns.sprintf('pre-scheduling for %s', host))
+      if (timestampFresh(ns, fn)) {
+        // ns.tprint(ns.sprintf('timestamp fresh, breaking'))
+        ranks.shift()
+        continue
+        // break // break stops the whole scheduling, continue allows to fill with lower targets
+      }
+      // ns.tprint(ns.sprintf('pre-scheduling for %s', host))
 
-    let p = planMoney(ns, host, perc, gpc)
-    if (totalFreeRam < p.totalRam) break
-    // while (totalFreeRam < p.totalRam) {
-    //   perc *= 0.5
-    //   p = planMoney(ns, host, perc, gpc)
-    // } // TODO: better system, deduplicate code, implement plan downscaling
-    // if (perc < minPerc) break
-
-    const maxCycleCount = Math.floor(p.cycleTime / msPad)
-    if (maxCycleCount == 0) {
-      ranks.shift()
-      continue
-      // break // break stops the whole scheduling, continue allows to fill with lower targets
-    }
-
-    let realCycleCount = 0 // TODO: refactor out into calculated value, not counted
-    for (let cI = 0; cI < maxCycleCount; cI++) {
+      let p = planMoney(ns, host, perc, gpc)
       if (totalFreeRam < p.totalRam) break
-      p.entries.forEach((entry) => {
-        totalFreeRam -= schedule(ns, servers, entry, p.target, msPad * cI)
-      })
-      realCycleCount++
+      // while (totalFreeRam < p.totalRam) {
+      //   perc *= 0.5
+      //   p = planMoney(ns, host, perc, gpc)
+      // } // TODO: better system, deduplicate code, implement plan downscaling
+      // if (perc < minPerc) break
+
+      const maxCycleCount = Math.floor(p.cycleTime / msPad)
+      if (maxCycleCount == 0) {
+        ranks.shift()
+        continue
+        // break // break stops the whole scheduling, continue allows to fill with lower targets
+      }
+
+      let realCycleCount = 0 // TODO: refactor out into calculated value, not counted
+      for (let cI = 0; cI < maxCycleCount; cI++) {
+        if (totalFreeRam < p.totalRam) break
+        p.entries.forEach((entry) => {
+          totalFreeRam -= schedule(ns, servers, entry, p.target, msPad * cI)
+        })
+        realCycleCount++
+      }
+
+      ns.toast(
+        ns.sprintf(
+          'scheduling %s cycles for %s',
+          realCycleCount.toString(),
+          p.target
+        ),
+        'info',
+        1000
+      )
+      const targetTime = Date.now() + p.cycleTime // TODO: wtf? why it doesn't need to be bigger
+      // ns.tprint("targetTime: "+targetTime)
+      await writeTimestamp(ns, fn, targetTime)
+
+      if (totalFreeRam < p.totalRam) break
+
+      // ns.toast(ns.sprintf("scheduling for %s", p.target), 'info')
+      ranks.shift()
     }
 
-    ns.toast(
-      ns.sprintf(
-        'scheduling %s cycles for %s',
-        realCycleCount.toString(),
-        p.target
-      ),
-      'info',
-      5000
-    )
-    const targetTime = Date.now() + p.cycleTime // TODO: wtf? why it doesn't need to be bigger
-    // ns.tprint("targetTime: "+targetTime)
-    await writeTimestamp(ns, fn, targetTime)
+    // ns.tprint(ns.sprintf('ramLeft: %s', totalFreeRam.toString()))
 
-    if (totalFreeRam < p.totalRam) break
+    // ns.toast('finished scheduling')
 
-    // ns.toast(ns.sprintf("scheduling for %s", p.target), 'info')
-    ranks.shift()
+    // const minServer = await weakestServer(ns)
+    // ns.tprint('weakest: ' + minServer)
+    const target = 'joesguns'
+    const sleepTime = ns.getGrowTime(target)
+    scheduleXpGrind(ns, servers, {type: 'grow', threads: 0, offset: 0}, target)
+    // ns.run('spawn_free.js', 1, 'weaken.js', 'joesguns', '0')
+    await ns.sleep(sleepTime + 500)
   }
-
-  // ns.tprint(ns.sprintf('ramLeft: %s', totalFreeRam.toString()))
-
-  // ns.toast('finished scheduling')
-
-  // const minServer = await weakestServer(ns)
-  // ns.tprint('weakest: ' + minServer)
-  // schedule(ns, servers, {type: 'weaken', threads: 0, offset: 0}, minServer, 0)
-  // ns.run('spawn_free.js', 1, 'weaken.js', 'joesguns', '0')
 }
 
 function schedule(
@@ -156,6 +171,20 @@ function schedule(
     ramLeftToSchedule = entry.threads * costs[entry.type]
   }
   return usedRam
+}
+
+function scheduleXpGrind(
+  ns: NS,
+  servers: Server[],
+  entry: Entry,
+  host: string
+): void {
+  for (const server of servers) {
+    const t = Math.max(Math.floor(server.freeRam / costs[entry.type]), 0)
+    if (t == 0) continue
+
+    ns.exec(typeMap[entry.type], server.name, t, host, entry.offset)
+  }
 }
 
 async function prepareServers(ns: NS, servers: Server[]): Promise<void> {

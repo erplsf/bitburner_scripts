@@ -38,12 +38,16 @@ export async function main(ns: NS): Promise<void> {
         const sourceHash = files[file]
         if (existingHash != sourceHash) {
           await downloadFile(ns, server, file)
+          // TODO: refactor this out to a config
           if (file == 'manager.js') {
             ns.kill('manager.js', 'home')
             ns.run('manager.js', 1)
           } else if (file == 'sync.js') {
             ns.exec('sync.js', 'home', 1, Date.now().toString())
             ns.exit()
+          } else if (file == 'scheduler.js') {
+            const killed = ns.kill('scheduler.js', 'home')
+            if (killed) ns.exec('scheduler.js', 'home')
           }
         }
       } else {

@@ -1,9 +1,8 @@
 import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
 import {getUniqueServers} from './pathfinder.js'
 
-const rooterParams = ['60', 'rooter.js']
-const schedulerParams = ['10', 'scheduler.js']
-const pservParams = ['60', 'pserv_manager.js']
+const rooterParams = [10, 'rooter.js']
+const pservParams = [60, 'pserv_manager.js']
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
@@ -22,11 +21,11 @@ export async function main(ns: NS): Promise<void> {
     if (allRooted.size != 1) {
       ns.run('keeper.js', 1, ...rooterParams)
     } else if (allRooted.size == 1 && Array.from(allRooted)[0] == true) {
-      ns.kill('keeper.js', ns.getHostname(), ...rooterParams)
+      ns.kill('keeper.js', ns.getHostname(), ...(rooterParams as string[]))
     }
 
     // scheduler
-    ns.run('keeper.js', 1, ...schedulerParams)
+    ns.run('scheduler.js')
 
     // pserv_manager
     ns.run('keeper.js', 1, ...pservParams)

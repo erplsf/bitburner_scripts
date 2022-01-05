@@ -34,5 +34,5 @@ function rankOne(ns: NS, host: string): number {
   const wT = Math.ceil(ns.getWeakenTime(host))
   const mM = ns.getServerMaxMoney(host)
   const cTH = ns.hackAnalyzeChance(host)
-  return Math.ceil((mM / (wT * secCorrectionFactor)) * cTH)
+  return Math.ceil(mM * (1 / wT) * secCorrectionFactor * cTH)
 }

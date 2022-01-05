@@ -139,6 +139,20 @@ export function planXp(ns: NS, host: string, ram: number): void {
   ns.tprint(ns.sprintf('w %s g %s', wT.toString(), gT.toString()))
 }
 
+// https://www.desmos.com/calculator/ixh9vqpfic
+export function ramPercForXpGrind(ns: NS, a: number, b: number): number {
+  const hl = ns.getHackingLevel()
+  return Math.max(f1(hl, a) * f2(hl, b), 0)
+}
+
+function f1(hl: number, a: number): number {
+  return 1 - 3000 / Math.pow(hl, a)
+}
+
+function f2(hl: number, b: number): number {
+  return Math.log2(hl) / b
+}
+
 export type Entry = {
   type: 'hack' | 'weaken' | 'grow'
   threads: number
