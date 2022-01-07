@@ -2,11 +2,16 @@ import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
 import {buildConnectionString, getPath} from './pathfinder.js'
 import {cheat, runCmd} from './utils.js'
 
-const hosts = ['CSEC', 'avmnite-02h', 'I.I.I.I', 'run4theh111z']
+export const factions: [string, string][] = [
+  ['CSEC', 'Sector-12'],
+  ['avmnite-02h', 'NiteSec'],
+  ['I.I.I.I', 'The Black Hand'],
+  ['run4theh111z', 'BitRunners'],
+]
 
 export async function main(ns: NS): Promise<void> {
   let anyBackdoored = false
-  for (const host of hosts) {
+  for (const host of factions.map((pair) => pair[0])) {
     if (
       ns.hasRootAccess(host) &&
       ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(host) &&
@@ -24,4 +29,9 @@ export async function main(ns: NS): Promise<void> {
     }
   }
   if (anyBackdoored) runCmd('home')
+}
+
+export function allFactionsJoined(ns: NS): boolean {
+  const joinedFactions = ns.getPlayer().factions
+  return factions.every((pair) => joinedFactions.includes(pair[1]))
 }

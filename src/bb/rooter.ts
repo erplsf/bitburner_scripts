@@ -6,7 +6,7 @@ import {getUniqueServers} from './pathfinder.js'
 export async function main(ns: NS): Promise<void> {
   let servers = await getUniqueServers(ns)
   let runForever = false
-  if (ns.args.length != 0 && ns.args[0] == true) {
+  if (ns.args.length !== 0 && ns.args[0] === true) {
     runForever = true
   }
   do {
@@ -32,8 +32,8 @@ function getRootkits(ns: NS): Rootkit[] {
   const kits = []
   if (ns.fileExists('brutessh.exe')) kits.push(ns.brutessh)
   if (ns.fileExists('ftpcrack.exe')) kits.push(ns.ftpcrack)
-  if (ns.fileExists('httpworm.exe')) kits.push(ns.httpworm)
   if (ns.fileExists('relaysmtp.exe')) kits.push(ns.relaysmtp)
+  if (ns.fileExists('httpworm.exe')) kits.push(ns.httpworm)
   if (ns.fileExists('sqlinject.exe')) kits.push(ns.sqlinject)
   return kits
 }

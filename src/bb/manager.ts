@@ -1,35 +1,84 @@
 import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
+import {allFactionsJoined} from './factions.js'
 import {getUniqueServers} from './pathfinder.js'
+import {progs as programs} from './progs_manager.js'
+import {pServsMaxed} from './pserv_manager'
 
-const rooterParams = [10, 'rooter.js']
-const pservParams = [60, 'pserv_manager.js']
+const progs = programs.map((pair) => pair[0])
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
-  ns.disableLog('ALL')
+  const host = ns.getHostname()
+  // ns.disableLog('ALL')
   ns.rm('servers.db.txt')
+  let allRooted = false
+  let allBought = false
+  let pMaxed = false
+  let allFactions = false
   for (;;) {
     // syncer
-    if (ns.ps('home').filter((pi) => pi.filename == 'sync.js').length == 0) {
+    if (ns.ps(host).filter((pi) => pi.filename === 'sync.js').length === 0) {
       ns.run('sync.js', 1, Date.now().toString())
     }
 
-    // rooter
-    const allRooted = new Set(
-      (await getUniqueServers(ns)).map((host) => ns.hasRootAccess(host))
+    // prog_manager
+    if (
+      !allBought &&
+      progs.map((fn) => ns.fileExists(fn)).filter((b) => !b).length !== 0
     )
-    if (allRooted.size != 1) {
-      ns.run('keeper.js', 1, ...rooterParams)
-    } else if (allRooted.size == 1 && Array.from(allRooted)[0] == true) {
-      ns.kill('keeper.js', ns.getHostname(), ...(rooterParams as string[]))
+      ns.run('progs_manager.js')
+    else {
+      allBought = true
+    }
+
+    // factions
+    if (!allFactions) {
+      if (!allFactionsJoined(ns)) {
+        ns.run('factions.js')
+      } else {
+        allFactions = true
+      }
+    }
+
+    // rooter
+    if (!allRooted) {
+      const rootedSet = new Set(
+        (await getUniqueServers(ns))
+          .filter((host) => ns.serverExists(host))
+          .map((host) => ns.hasRootAccess(host))
+      )
+      if (rootedSet.size !== 1) {
+        ns.run('rooter.js')
+      } else {
+        allRooted = true
+      }
     }
 
     // scheduler
-    ns.run('scheduler.js')
+    if (
+      ns.ps(host).filter((pi) => pi.filename === 'scheduler.js').length === 0
+    ) {
+      if (ns.getServerMaxRam(host) > 32) {
+        ns.run('scheduler.js')
+      } else {
+        ns.run('scheduler.js', 1, true)
+      }
+    }
 
     // pserv_manager
-    ns.run('keeper.js', 1, ...pservParams)
+    if (!pMaxed) {
+      if (
+        ns.ps(host).filter((pi) => pi.filename === 'pserv_manager.js')
+          .length === 0
+      ) {
+        if (pServsMaxed(ns)) {
+          pMaxed = true
+        } else {
+          ns.run('pserv_manager.js')
+        }
+      }
+    }
 
-    await ns.sleep(10000)
+    await ns.sleep(1 * 1000)
   }
 }

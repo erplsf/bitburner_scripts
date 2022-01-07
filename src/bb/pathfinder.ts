@@ -29,7 +29,9 @@ export async function buildOrGetMap(ns: NS): Promise<PathMap> {
     map = JSON.parse(ns.read(filename))
   }
   enrichMapWithPurchasedServers(ns, map)
-  enrichMapWithDarkWeb(ns, map)
+  if (ns.serverExists('darkweb')) {
+    map['darkweb'] = ['home', 'darkweb']
+  }
   return map
 }
 
@@ -37,12 +39,6 @@ function enrichMapWithPurchasedServers(ns: NS, map: PathMap): void {
   ns.getPurchasedServers().forEach((pServ) => {
     map[pServ] = ['home', pServ]
   })
-}
-
-function enrichMapWithDarkWeb(ns: NS, map: PathMap): void {
-  if (ns.serverExists('darkweb')) {
-    map['darkweb'] = ['home', 'darkweb']
-  }
 }
 
 function scan(ns: NS): PathMap {

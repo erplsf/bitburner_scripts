@@ -19,39 +19,48 @@ export function planMoney(
   perc: number,
   gpc: number
 ): Plan {
-  perc = Math.min(perc, 1)
+  perc = Math.min(perc, 1 - Number.EPSILON)
   gpc = Math.max(gpc, 1)
 
   const maxMoney = ns.getServerMaxMoney(host)
   const curMoney = ns.getServerMoneyAvailable(host)
   const growScale = curMoney / maxMoney // scale hacks proportionally to max money so we can grow faster
   const revGrowScale = 1 - growScale // scale additional growth reversely as we reach maxMoney
+  // ns.tprint(
+  //   ns.sprintf(
+  //     'gs: %s revGs: %s',
+  //     growScale.toString(),
+  //     revGrowScale.toString()
+  //   )
+  // )
 
   const minSec = ns.getServerMinSecurityLevel(host)
   const curSec = ns.getServerSecurityLevel(host)
   const secScale = curSec / minSec
+  const revSecScale = 1 / secScale
 
   const hackPercentagePerThread = ns.hackAnalyze(host) // returns DECIMALS
-  const threadsToReachDesiredPerc = Math.max(
-    1,
-    Math.floor((perc / hackPercentagePerThread) * growScale)
-  ) // threads needed to reach target perc
-
-  const secIncreasePerHack = threadsToReachDesiredPerc * hpt // security increase to reach perc
-  const threadsToOffsetHack =
-    1 + Math.ceil((secIncreasePerHack / wpt) * secScale) // threads to offset hack security growth
-
-  const wantedGrowthRate = Math.max(
-    1 / (1 - perc) + (Math.min((gpc - 1) * revGrowScale), 0),
-    1
+  const threadsToReachDesiredPerc = Math.floor(
+    (perc / hackPercentagePerThread) * growScale * revSecScale
   )
 
-  const threadsToGrowMoneyBack =
-    1 + Math.ceil(ns.growthAnalyze(host, wantedGrowthRate)) // threads required to offset hack
+  // threads needed to reach target perc
+
+  const secIncreasePerHack = threadsToReachDesiredPerc * hpt // security increase to reach perc
+  const threadsToOffsetHack = Math.ceil((secIncreasePerHack / wpt) * secScale) // threads to offset hack security growth
+
+  const wantedGrowthRate = 1 / (1 - perc) + (gpc - 1) * revGrowScale
+
+  // ns.tprint(
+  //   ns.sprintf('gpc: %s wgr: %s', gpc.toString(), wantedGrowthRate.toString())
+  // )
+
+  const threadsToGrowMoneyBack = Math.ceil(
+    ns.growthAnalyze(host, wantedGrowthRate)
+  ) // threads required to offset hack
   const secIncreasePerGrow = threadsToGrowMoneyBack * gpt // security increase per growth
 
-  const threadsToOffsetGrowth =
-    1 + Math.ceil((secIncreasePerGrow / wpt) * secScale) // threads to offset growth
+  const threadsToOffsetGrowth = Math.ceil((secIncreasePerGrow / wpt) * secScale) // threads to offset growth
 
   const weakenTime = Math.ceil(ns.getWeakenTime(host))
   const hackTime = Math.ceil(ns.getHackTime(host))
@@ -86,18 +95,34 @@ export function planMoney(
   const fw: Entry = {
     type: 'weaken',
     threads: threadsToOffsetHack,
-    offset: fwo,
+    startOffset: fwo,
+    startTimestamp: now + fwo,
+    duration: weakenTime,
+    endTimestamp: now + fwo + weakenTime,
   }
   const sw: Entry = {
     type: 'weaken',
     threads: threadsToOffsetGrowth,
-    offset: swo,
+    startOffset: swo,
+    startTimestamp: now + swo,
+    duration: weakenTime,
+    endTimestamp: now + swo + weakenTime,
   }
-  const g: Entry = {type: 'grow', threads: threadsToGrowMoneyBack, offset: go}
+  const g: Entry = {
+    type: 'grow',
+    threads: threadsToGrowMoneyBack,
+    startOffset: go,
+    startTimestamp: now + go,
+    duration: growTime,
+    endTimestamp: now + go + growTime,
+  }
   const h: Entry = {
     type: 'hack',
     threads: threadsToReachDesiredPerc,
-    offset: ho,
+    startOffset: ho,
+    startTimestamp: now + ho,
+    duration: hackTime,
+    endTimestamp: now + ho + hackTime,
   }
   const p: Plan = {
     totalRam: 0,
@@ -106,7 +131,10 @@ export function planMoney(
     target: '',
   }
   p.target = host
-  p.entries = [fw, sw, g, h]
+  if (h.threads !== 0) p.entries.push(h)
+  if (fw.threads !== 0) p.entries.push(fw)
+  if (sw.threads !== 0) p.entries.push(sw)
+  if (g.threads !== 0) p.entries.push(g)
   p.totalRam = p.entries
     .map((e) => e.threads * costs[e.type])
     .reduce((a, b) => a + b, 0)
@@ -118,11 +146,11 @@ export function planXp(ns: NS, host: string, ram: number): void {
   // TODO: solve system of linear ineqaulities
   // 1.75 * (W_t + G_t) <= RAM
   // 0.05 * W_t - 0.004 * G_t >= 0
-  let solved = false
+  const solved = false
   let wT = Math.floor(ram / 2 / costs.weaken)
   let gT = Math.floor(ram / 2 / costs.grow)
   let minDiff = 0
-  let sameCount = 0
+  const sameCount = 0
   while (!solved) {
     const diff = wT * wpt - gT * gpt
     if (diff > 0 && diff < minDiff) minDiff = diff
@@ -156,8 +184,12 @@ function f2(hl: number, b: number): number {
 export type Entry = {
   type: 'hack' | 'weaken' | 'grow'
   threads: number
-  offset: number
+  startOffset: number
+  startTimestamp: number
+  duration: number
+  endTimestamp: number
 }
+
 export type Plan = {
   totalRam: number
   entries: Entry[]

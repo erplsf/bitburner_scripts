@@ -10,7 +10,7 @@ export async function main(ns: NS): Promise<void> {
   let replace = false
   if (ns.args.length >= 2) replace = ns.args.shift() as boolean
 
-  if (filename.length == 0) return
+  if (filename.length === 0) return
   if (!ns.fileExists(filename)) return
 
   const rootedServers = rootedHackableServers(ns)
@@ -29,9 +29,9 @@ export async function main(ns: NS): Promise<void> {
         ns.getServerMaxRam(serv) / ns.getScriptRam(filename, serv)
       )
       // ns.tprint(ns.sprintf("can run with %d threads on %s", threads.toString(), serv))
-      if (threads == 0) continue
+      if (threads === 0) continue
       const pid = ns.exec(filename, serv, threads, ...ns.args)
-      if (pid == 0)
+      if (pid === 0)
         ns.toast(ns.sprintf('something went wrong on %s', serv), 'error')
       else ns.toast(ns.sprintf('started %s on %s', filename, serv), 'info')
     }

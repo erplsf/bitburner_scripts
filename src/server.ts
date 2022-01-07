@@ -41,7 +41,7 @@ async function read(name: string): Promise<Buffer> {
 const app = new Koa()
 
 app.use(async (ctx) => {
-  if (ctx.path == '/') {
+  if (ctx.path === '/') {
     ctx.body = Object.fromEntries(await ls())
   } else {
     const name = ctx.path.split('/').slice(1).join('/')

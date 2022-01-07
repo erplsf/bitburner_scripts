@@ -1,4 +1,4 @@
-import {NS, Server} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
+import {NS} from '../../bitburner/src/ScriptEditor/NetscriptDefinitions'
 import {getUniqueServers} from './pathfinder.js'
 
 export function buildServerMap(
@@ -18,7 +18,7 @@ export function buildServerMap(
 
 export function unique(array: string[]): string[] {
   return array.reduce((acc: string[], serv: string) => {
-    const exists = acc.find((ex: string) => ex == serv)
+    const exists = acc.find((ex: string) => ex === serv)
     if (!exists) acc.push(serv)
     return acc
   }, [])
@@ -35,21 +35,29 @@ export async function filterServers(
 }
 
 export async function rootedServers(ns: NS): Promise<string[]> {
-  return await filterServers(ns, (serv) => ns.hasRootAccess(serv))
+  return await filterServers(
+    ns,
+    (serv) => ns.serverExists(serv) && ns.hasRootAccess(serv)
+  )
 }
 
 export async function rootedHackableServers(ns: NS): Promise<string[]> {
   return await filterServers(
     ns,
     (serv) =>
+      ns.serverExists(serv) &&
       ns.hasRootAccess(serv) &&
       ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(serv) &&
-      serv != 'home'
+      ns.getServerMaxMoney(serv) !== 0 &&
+      serv !== 'home'
   )
 }
 
-export function runCmd(cmd: string): void {
-  const input = cheat.doc.getElementById('terminal-input') as HTMLInputElement
+export function runCmd(cmd: string): boolean {
+  const input = cheat.doc.getElementById(
+    'terminal-input'
+  ) as HTMLInputElement | null
+  if (!input) return false
   input.value = cmd
   const handler = Object.keys(input)[1] as keyof HTMLInputElement
   ;(input[handler] as unknown as DummyHandler).onChange({
@@ -59,11 +67,12 @@ export function runCmd(cmd: string): void {
     keyCode: 13,
     preventDefault: () => null,
   })
+  return true
 }
 
-export interface DummyHandler {
-  onChange(e: any): void
-  onKeyDown(e: any): void
+interface DummyHandler {
+  onChange(e: unknown): unknown
+  onKeyDown(e: unknown): unknown
 }
 
 export class cheat {
@@ -76,11 +85,17 @@ export class cheat {
   }
 }
 
-export function round(value: number, precision: number): number {
-  const multiplier = Math.pow(10, precision || 0)
-  return Math.round(value * multiplier) / multiplier
+export function calculateGainedFavor(rep: number): number {
+  return 1 + Math.log((rep + 25000) / 25000) / Math.log(1.02)
 }
 
-function calculateGainedFavor(rep: number): number {
+type HGWArgs = [string, number, number | null]
+
+// export function parseHGWArgs(ns: NS): HGWArgs {
+//   const host = ns.args[0]
+//   if(typeof host === 'string')
+// }
+
+export function calculateGainedFavor(rep: number): number {
   return 1 + Math.log((rep + 25000) / 25000) / Math.log(1.02)
 }

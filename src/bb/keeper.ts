@@ -8,16 +8,16 @@ export async function main(ns: NS): Promise<void> {
   const filenames = ns.args as string[]
 
   if (s <= 0) return
-  if (filenames.length == 0) return
+  if (filenames.length === 0) return
 
   for (;;) {
     for (const filename of filenames) {
       const pid = ns.run(filename)
-      if (pid == 0) {
+      if (pid === 0) {
         // ns.tprint(ns.sprintf("something happened when running %s", filename))
         continue
       }
-      while (ns.ps('home').filter((info) => info.pid == pid).length != 0)
+      while (ns.ps('home').filter((info) => info.pid === pid).length !== 0)
         await ns.sleep(100)
     }
     await ns.sleep(s * 1000)
