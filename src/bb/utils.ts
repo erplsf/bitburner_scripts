@@ -95,7 +95,3 @@ type HGWArgs = [string, number, number | null]
 //   const host = ns.args[0]
 //   if(typeof host === 'string')
 // }
-
-export function calculateGainedFavor(rep: number): number {
-  return 1 + Math.log((rep + 25000) / 25000) / Math.log(1.02)
-}
