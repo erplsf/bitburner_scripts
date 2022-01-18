@@ -18,8 +18,8 @@ export async function main(ns: NS): Promise<void> {
       !ns.getServer(host).backdoorInstalled
     ) {
       const path = await getPath(ns, host)
-      runCmd(buildConnectionString(path))
-      runCmd('backdoor')
+      if (!runCmd(buildConnectionString(path))) return
+      if (!runCmd('backdoor')) return
       while (
         (cheat.doc.getElementById('terminal-input') as HTMLInputElement)
           .disabled

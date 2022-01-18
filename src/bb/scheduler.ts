@@ -14,11 +14,15 @@ const typeMap = {
   grow: 'grow.js',
 }
 
-const desiredPerc = 0.5
+const desiredPerc = 0.9
 const desiredGrowth = 2 // TODO: fix, does nothing atm // growth rate of original money
+const desiredWeaken = 0.5
 
 const minPerc = 0.01
 const minGpc = 1
+const minWpc = 0
+
+const decreaseRate = 0.5 // 0.5 safe, 0.8 triggers watchdog
 
 // https://www.desmos.com/calculator/ixh9vqpfic
 const a = 1.5
@@ -34,7 +38,6 @@ export async function main(ns: NS): Promise<void> {
 
 // TODO: implement better automatic lowering of targets
 async function scheduleAll(ns: NS, once = false): Promise<void> {
-  let gpc = desiredGrowth // growth rate of original money
   do {
     const ranks = await rankAllForMoney(ns)
     const servers = await getFreeRams(ns)
@@ -57,6 +60,9 @@ async function scheduleAll(ns: NS, once = false): Promise<void> {
 
     while (ranks.length > 0 && servers.length > 0) {
       let perc = desiredPerc
+      let gpc = desiredGrowth
+      let wpc = desiredWeaken
+
       const host = ranks[0]
       const fn = '.s.' + host + '.txt'
 
@@ -70,50 +76,56 @@ async function scheduleAll(ns: NS, once = false): Promise<void> {
       }
       // ns.tprint(ns.sprintf('pre-scheduling for %s', host))
 
-      let p = planMoney(ns, host, perc, gpc)
+      let p = planMoney(ns, host, perc, gpc, wpc)
       // if (totalFreeRam < p.totalRam) {
       //   ranks.shift()
       //   continue
       // }
-      while (totalFreeRam < p.totalRam) {
-        perc = Math.max(0.01, perc * 0.5)
-        p = planMoney(ns, host, perc, gpc)
-        if (perc === minPerc && totalFreeRam < p.totalRam) break
+      while (p.totalRam > totalFreeRam) {
+        if (perc === minPerc) break
+        perc = Math.max(minPerc, perc * decreaseRate)
+        p = planMoney(ns, host, perc, gpc, wpc)
+        // ns.print('perc loop')
       } // TODO: better system, deduplicate code, implement plan downscaling
 
-      while (totalFreeRam < p.totalRam) {
-        gpc = Math.max(1, gpc * 0.5)
-        p = planMoney(ns, host, perc, gpc)
-        if (gpc === minGpc && totalFreeRam < p.totalRam) break
+      while (p.totalRam > totalFreeRam) {
+        if (gpc === minGpc) break
+        gpc = Math.max(minGpc, gpc * decreaseRate)
+        p = planMoney(ns, host, perc, gpc, wpc)
+        // ns.print('gpc loop')
       } // TODO: better system, deduplicate code, implement plan downscaling
 
-      if (perc === minPerc && gpc === minGpc && totalFreeRam < p.totalRam) {
+      while (p.totalRam > totalFreeRam) {
+        if (wpc === minWpc) break
+        wpc = Math.max(minWpc, wpc * decreaseRate)
+        p = planMoney(ns, host, perc, gpc, wpc)
+        // ns.print('wpc loop')
+      } // TODO: better system, deduplicate code, implement plan downscaling
+
+      if (totalFreeRam < p.totalRam) {
         // ns.tprint('perc too small for ' + host)
         ranks.shift()
         continue
       }
 
       const maxCycleCount = Math.floor(p.cycleTime / msPad)
-      if (maxCycleCount === 0) {
+      const realCycleCount = Math.min(
+        Math.floor(totalFreeRam / p.totalRam),
+        maxCycleCount
+      )
+      if (realCycleCount === 0) {
         ranks.shift()
         continue
         // break // break stops the whole scheduling, continue allows to fill with lower targets
       }
       // ns.tprint('maxCycles ' + maxCycleCount)
 
-      let realCycleCount = 0 // TODO: refactor out into calculated value, not counted
-      for (let cI = 0; cI < maxCycleCount; cI++) {
+      for (let cI = 0; cI < realCycleCount; cI++) {
         if (totalFreeRam < p.totalRam) break
         p.entries.forEach((entry) => {
           totalFreeRam -= schedule(ns, servers, entry, p.target, msPad * cI)
         })
-        realCycleCount++
       }
-      if (realCycleCount === 0) {
-        ranks.shift()
-        continue
-      }
-      // ns.tprint('realCycles ' + realCycleCount)
 
       // ns.toast(
       //   ns.sprintf(

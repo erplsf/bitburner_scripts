@@ -1,8 +1,5 @@
 {
-  "include": [
-    "bitburner/src/ScriptEditor/NetscriptDefinitions.d.ts",
-    "src/**/*"
-  ],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "noImplicitReturns": true,
     "noImplicitAny": true,

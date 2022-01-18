@@ -37,7 +37,11 @@ type RatingFunction = (ns: NS, host: string) => number
 
 export async function rankAllForXp(ns: NS): Promise<string[]> {
   const servs = await rootedHackableServers(ns)
-  return rate(ns, servs, rankOneForXp)
+  if (ns.fileExists('formulas.exe', 'home')) {
+    return rate(ns, servs, rankOneWithFormulasForXp)
+  } else {
+    return rate(ns, servs, rankOneForXp)
+  }
 }
 
 function rankOneForXp(ns: NS, host: string): number {
@@ -47,8 +51,11 @@ function rankOneForXp(ns: NS, host: string): number {
 }
 
 function rankOneWithFormulasForXp(ns: NS, host: string): number {
-  // TODO: implement
-  throw new Error('Function not implemented.')
+  const p = ns.getPlayer()
+  const s = ns.getServer(host)
+  s.hackDifficulty = s.minDifficulty
+  const gT = ns.formulas.hacking.growTime(s, p)
+  return Math.ceil((1 / gT) * (1 / s.minDifficulty))
 }
 
 function rankOneForMoney(ns: NS, host: string): number {
@@ -64,9 +71,15 @@ function rankOneForMoney(ns: NS, host: string): number {
 function rankOneWithFormulasForMoney(ns: NS, host: string): number {
   const p = ns.getPlayer()
   const s = ns.getServer(host)
-  s.moneyAvailable = s.moneyMax
+  const pow = s.hackDifficulty / s.minDifficulty - 1
+  const timeToPrime = Math.pow(ns.formulas.hacking.weakenTime(s, p), pow)
+  // if (host === 'rho-construction') {
+  //   ns.tprint(host)
+  //   ns.tprint(pow)
+  //   ns.tprint(timeToPrime)
+  // }
   s.hackDifficulty = s.minDifficulty
-  const wT = ns.formulas.hacking.weakenTime(s, p)
+  const hT = ns.formulas.hacking.hackTime(s, p)
   const hC = ns.formulas.hacking.hackChance(s, p)
-  return Math.ceil(s.moneyMax * (1 / wT) * hC)
+  return Math.ceil((s.moneyMax * (1 / hT) * hC) / timeToPrime)
 }
