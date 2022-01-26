@@ -9,6 +9,7 @@ export const costs = {
   weaken: 1.75,
   grow: 1.75,
   hack: 1.7,
+  share: 4,
 }
 
 export const msPad = 200 // padding between finishes in ms
@@ -96,8 +97,11 @@ export function planMoneyWithFormulas(
 
   const wantedGrowthRate = 1 / (1 - perc) + (gpc - 1) * (1 - moneyScale)
 
-  const gPerc = ns.formulas.hacking.growPercent(hackedS, 1, p) - 1
-  const gtWantedPerc = Math.ceil(wantedGrowthRate / gPerc) * gMult
+  // const gPerc = ns.formulas.hacking.growPercent(hackedS, 1, p) - 1 // TODO: figure out why this is broken
+  // const gtWantedPerc = Math.ceil(wantedGrowthRate / gPerc) * gMult // same
+
+  const gtWantedPerc =
+    Math.ceil(ns.growthAnalyze(host, wantedGrowthRate)) * gMult
   // ns.tprint(ns.sprintf('%s', gPerc))
   // const gtWantedOld = Math.ceil(ns.growthAnalyze(host, wantedGrowthRate))
 
@@ -328,7 +332,7 @@ function f2(hl: number, b: number): number {
 }
 
 export type Entry = {
-  type: 'hack' | 'weaken' | 'grow'
+  type: 'hack' | 'weaken' | 'grow' | 'share'
   threads: number
   startOffset: number
   startTimestamp: number

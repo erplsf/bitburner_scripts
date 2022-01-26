@@ -25,29 +25,33 @@ async function digestMessage(message: string): Promise<string> {
 
 const server = 'http://localhost:3000'
 
+const persistentProgs = ['manager.js', 'pserv_manager.js', 'hs_manager.js']
+
 export async function main(ns: NS): Promise<void> {
   ns.disableLog('sleep')
+  const ownName = ns.getScriptName()
+  const host = ns.getHostname()
   for (;;) {
     const files = (await listFiles(server).catch(() => {
       return {}
     })) as Record<string, string>
     for (const file in files) {
-      if (ns.fileExists(file, 'home')) {
+      if (ns.fileExists(file, host)) {
         const existingContents = ns.read(file)
         const existingHash = await digestMessage(existingContents)
         const sourceHash = files[file]
         if (existingHash !== sourceHash) {
           await downloadFile(ns, server, file)
+          for (const filename of persistentProgs) {
+            if (file === filename) {
+              const killed = ns.kill(file, host)
+              if (killed) ns.run(file)
+            }
+          }
           // TODO: refactor this out to a config
-          if (file === 'manager.js') {
-            ns.kill('manager.js', 'home')
-            ns.run('manager.js', 1)
-          } else if (file === 'sync.js') {
-            ns.exec('sync.js', 'home', 1, Date.now().toString())
+          if (file === ownName) {
+            ns.exec(ownName, host, 1, Date.now().toString())
             ns.exit()
-          } else if (file === 'scheduler.js') {
-            const killed = ns.kill('scheduler.js', 'home')
-            if (killed) ns.exec('scheduler.js', 'home')
           }
         }
       } else {

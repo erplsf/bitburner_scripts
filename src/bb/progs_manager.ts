@@ -12,15 +12,24 @@ export const progs: [string, number][] = [
 
 /** @param {NS} ns **/
 export async function main(ns: NS): Promise<void> {
-  if (ns.getPlayer().tor) {
-    for (const fn of progs) {
-      buyProgIfNeeded(ns, fn)
-    }
-  }
+  buyProgsIfNeeded(ns)
 }
 
-function buyProgIfNeeded(ns: NS, [progname, cost]: [string, number]): void {
-  if (!ns.fileExists(progname) && ns.getServerMoneyAvailable('home') >= cost) {
-    runCmd(`home;buy ${progname}`)
+export function buyProgsIfNeeded(ns: NS): boolean {
+  const boughtProgs = []
+  if (ns.getPlayer().tor) {
+    const sFiles = ns.getOwnedSourceFiles()
+    const sf4 = sFiles.find((sf) => sf.n === 4)
+    for (const [fn, cost] of progs) {
+      if (!ns.fileExists(fn) && ns.getServerMoneyAvailable('home') >= cost) {
+        if (sf4) {
+          boughtProgs.push(ns.purchaseProgram(fn))
+        } else {
+          runCmd(`home;buy ${fn}`)
+          boughtProgs.push(true)
+        }
+      }
+    }
   }
+  return boughtProgs.some((b) => b)
 }

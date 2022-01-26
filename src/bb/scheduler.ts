@@ -5,13 +5,13 @@ import {rankAllForMoney, rankAllForXp} from './rank.js'
 import {rootedServers} from './utils.js'
 import {nsFilename} from './pserv_manager.js'
 
-const freeRamOnHome = 16
 const files = ['hack.js', 'weaken.js', 'grow.js']
 
 const typeMap = {
   hack: 'hack.js',
   weaken: 'weaken.js',
   grow: 'grow.js',
+  share: 'share.js',
 }
 
 const desiredPerc = 0.9
@@ -105,7 +105,7 @@ async function scheduleAll(ns: NS, once = false): Promise<void> {
       if (totalFreeRam < p.totalRam) {
         // ns.tprint('perc too small for ' + host)
         ranks.shift()
-        continue
+        continue // TODO: break stops after first not enough, continue fills with smaller targets
       }
 
       const maxCycleCount = Math.floor(p.cycleTime / msPad)
@@ -152,10 +152,27 @@ async function scheduleAll(ns: NS, once = false): Promise<void> {
 
     // ns.tprint('ranks after: ' + ranks.length)
     // ns.tprint(ranks)
+    // if (ranks.length === 0) {
+    //   // const sleepTime = ns.getGrowTime(target)
+    //   scheduleFullServer(
+    //     ns,
+    //     servers,
+    //     {
+    //       type: 'share',
+    //       threads: 0,
+    //       startOffset: 0,
+    //       startTimestamp: 0,
+    //       duration: 0,
+    //       endTimestamp: 0,
+    //     },
+    //     ''
+    //   )
+    //   // await ns.sleep(Math.max(sleepTime - 1000, 0))
+    // }
     if (ranks.length === 0 && ns.getHackingLevel() > 500) {
       const target = (await rankAllForXp(ns))[0]
       // const sleepTime = ns.getGrowTime(target)
-      scheduleXpGrind(
+      scheduleFullServer(
         ns,
         servers,
         {
@@ -223,7 +240,7 @@ function schedule(
   return usedRam
 }
 
-function scheduleXpGrind(
+function scheduleFullServer(
   ns: NS,
   servers: Server[],
   entry: Entry,
@@ -245,6 +262,7 @@ async function prepareServers(ns: NS, servers: Server[]): Promise<void> {
 }
 
 export function freeRamOnServ(ns: NS, host: string): Server {
+  const freeRamOnHome = ns.args[1] as number // TODO: bad code
   if (host === 'home')
     return {
       name: host,
@@ -286,6 +304,7 @@ export async function getFreeRams(ns: NS): Promise<Server[]> {
   const servs = await rootedServers(ns)
   const rams: Server[] = servs
     .filter((host) => !ns.fileExists(nsFilename, host))
+    .filter((host) => !host.startsWith('hacknet-node-'))
     .map((host) => freeRamOnServ(ns, host))
     .filter((pair) => pair.freeRam !== 0)
   rams.sort((a, b) => a.freeRam - b.freeRam)
